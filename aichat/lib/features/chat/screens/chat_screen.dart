@@ -255,19 +255,34 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     orElse: () => snapshot.data?.first ?? ApiConfig.empty(),
                   );
                   return GestureDetector(
-                    onTap: () => _showApiSelector(chat),
+                    onTap: ref
+                            .watch(
+                                chatControllerProvider(widget.chatId).notifier)
+                            .isSending
+                        ? null
+                        : () => _showApiSelector(chat),
                     child: Row(
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
                           apiConfig?.name ?? l10n.get('no_api_selected'),
                           style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                            color: theme.colorScheme.onSurface.withOpacity(ref
+                                    .watch(chatControllerProvider(widget.chatId)
+                                        .notifier)
+                                    .isSending
+                                ? 0.4
+                                : 0.6),
                           ),
                         ),
                         Icon(
                           Icons.arrow_drop_down,
-                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          color: theme.colorScheme.onSurface.withOpacity(ref
+                                  .watch(chatControllerProvider(widget.chatId)
+                                      .notifier)
+                                  .isSending
+                              ? 0.4
+                              : 0.6),
                           size: 16,
                         ),
                       ],
@@ -293,13 +308,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                     .read(favoritesControllerProvider.notifier)
                     .toggleChatFavorite(chat);
               },
+              visualDensity: VisualDensity.compact,
+              padding: const EdgeInsets.all(8),
             ),
             loading: () => const SizedBox(),
             error: (_, __) => const SizedBox(),
           ),
           PopupMenuButton(
+            padding: const EdgeInsets.symmetric(horizontal: 8),
+            icon: const Icon(Icons.more_vert),
+            enabled: !ref
+                .watch(chatControllerProvider(widget.chatId).notifier)
+                .isSending,
             itemBuilder: (context) => [
               PopupMenuItem(
+                enabled: !ref
+                    .watch(chatControllerProvider(widget.chatId).notifier)
+                    .isSending,
                 child: Text(l10n.get('select_api')),
                 onTap: () {
                   chatState.whenData((chat) {
@@ -308,6 +333,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 },
               ),
               PopupMenuItem(
+                enabled: !ref
+                    .watch(chatControllerProvider(widget.chatId).notifier)
+                    .isSending,
                 child: Text(l10n.get('clear_context_menu')),
                 onTap: () {
                   ref
@@ -349,7 +377,11 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         ],
                       ),
                     )
-                  : _buildMessageList(chat),
+                  : MessageList(
+                      chat: chat,
+                      scrollController: _scrollController,
+                      l10n: l10n,
+                    ),
             ),
             const Divider(height: 1),
             Container(
@@ -362,27 +394,44 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         IconButton(
                           icon: const Icon(Icons.api),
                           tooltip: l10n.get('select_api'),
-                          onPressed: () => _showApiSelector(chat),
+                          onPressed: ref
+                                  .watch(chatControllerProvider(widget.chatId)
+                                      .notifier)
+                                  .isSending
+                              ? null
+                              : () => _showApiSelector(chat),
                         ),
                         IconButton(
                           icon: const Icon(Icons.splitscreen),
                           tooltip: l10n.get('clear_context'),
-                          onPressed: () {
-                            ref
-                                .read(chatControllerProvider(widget.chatId)
-                                    .notifier)
-                                .clearContext();
-                          },
+                          onPressed: ref
+                                  .watch(chatControllerProvider(widget.chatId)
+                                      .notifier)
+                                  .isSending
+                              ? null
+                              : () {
+                                  ref
+                                      .read(
+                                          chatControllerProvider(widget.chatId)
+                                              .notifier)
+                                      .clearContext();
+                                },
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete_sweep),
                           tooltip: l10n.get('clear_messages'),
-                          onPressed: () {
-                            ref
-                                .read(chatControllerProvider(widget.chatId)
-                                    .notifier)
-                                .clearMessages();
-                          },
+                          onPressed: ref
+                                  .watch(chatControllerProvider(widget.chatId)
+                                      .notifier)
+                                  .isSending
+                              ? null
+                              : () {
+                                  ref
+                                      .read(
+                                          chatControllerProvider(widget.chatId)
+                                              .notifier)
+                                      .clearMessages();
+                                },
                         ),
                         if (ref
                             .watch(
@@ -659,6 +708,58 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           ),
         ],
       ),
+    );
+  }
+}
+
+class MessageList extends ConsumerWidget {
+  final Chat chat;
+  final ScrollController scrollController;
+  final AppLocalizations l10n;
+
+  const MessageList({
+    super.key,
+    required this.chat,
+    required this.scrollController,
+    required this.l10n,
+  });
+
+  @override
+  Widget build(BuildContext context, WidgetRef ref) {
+    return ListView.builder(
+      controller: scrollController,
+      padding: const EdgeInsets.all(8.0),
+      itemCount: chat.messages.length,
+      itemBuilder: (context, index) {
+        final message = chat.messages[index];
+        final isFavorite = ref.watch(favoritesControllerProvider).any(
+              (item) => item.id == message.id && !item.isChat,
+            );
+
+        return MessageBubble(
+          message: message,
+          isFavorite: isFavorite,
+          onCopy: (content) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(l10n.get('message_copied')),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          },
+          onFavorite: () {
+            ref
+                .read(favoritesControllerProvider.notifier)
+                .toggleMessageFavorite(message, chat);
+          },
+          onDelete: () {
+            ref
+                .read(chatControllerProvider(chat.id).notifier)
+                .deleteMessage(message.id);
+          },
+          l10n: l10n,
+        );
+      },
     );
   }
 }

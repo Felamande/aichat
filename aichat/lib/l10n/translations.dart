@@ -96,7 +96,7 @@ class AppLocalizations {
       'import_data': 'Import Data',
       'import_data_desc': 'Restore from backup',
       'import_warning':
-          'Warning: Importing data will replace all existing chats and settings.',
+          'Warning: Importing data will replace all existing chats, API configurations, and favorites.',
       'backup_settings': 'Backup Settings',
       'help_feedback': 'Help & Feedback',
       'about': 'About',
@@ -199,7 +199,7 @@ class AppLocalizations {
       'export_data_desc': '保存您的聊天和设置',
       'import_data': '导入数据',
       'import_data_desc': '从备份中恢复',
-      'import_warning': '警告：导入数据将替换所有现有的聊天和设置。',
+      'import_warning': '警告：导入数据将替换所有现有的聊天、API配置和收藏。',
       'backup_settings': '备份设置',
       'help_feedback': '帮助与反馈',
       'about': '关于',

@@ -10,6 +10,11 @@ import 'dart:io' show Platform;
 import '../../../core/models/chat.dart';
 import '../../../core/models/api_config.dart';
 import '../../../l10n/translations.dart';
+import '../../../core/providers/chat_list_provider.dart';
+import '../../../core/providers/favorites_controller_provider.dart';
+import '../chat/screens/chat_list_screen.dart' show chatListProvider;
+import '../favorites/controllers/favorites_controller.dart'
+    show favoritesControllerProvider;
 
 class BackupSettingsScreen extends ConsumerWidget {
   const BackupSettingsScreen({super.key});
@@ -24,6 +29,10 @@ class BackupSettingsScreen extends ConsumerWidget {
         'api_configs': (await Hive.openBox<ApiConfig>('api_configs'))
             .values
             .map((config) => config.toJson())
+            .toList(),
+        'favorites': (await Hive.openBox<Map>('favorites'))
+            .values
+            .map((favoriteJson) => favoriteJson)
             .toList(),
       };
 
@@ -111,7 +120,9 @@ class BackupSettingsScreen extends ConsumerWidget {
       final data = jsonDecode(jsonString) as Map<String, dynamic>;
 
       // Validate the backup file format
-      if (!data.containsKey('chats') || !data.containsKey('api_configs')) {
+      if (!data.containsKey('chats') ||
+          !data.containsKey('api_configs') ||
+          !data.containsKey('favorites')) {
         if (context.mounted) {
           ScaffoldMessenger.of(context).showSnackBar(
             SnackBar(
@@ -143,6 +154,11 @@ class BackupSettingsScreen extends ConsumerWidget {
         return ApiConfig.fromJson(configJson as Map<String, dynamic>);
       }).toList();
 
+      // Import favorites
+      final favorites = (data['favorites'] as List).map((favoriteJson) {
+        return Map<String, dynamic>.from(favoriteJson);
+      }).toList();
+
       // Save to Hive
       for (final chat in chats) {
         await chatsBox.put(chat.id, chat);
@@ -152,6 +168,10 @@ class BackupSettingsScreen extends ConsumerWidget {
         await apiConfigsBox.put(config.id, config);
       }
 
+      for (final favorite in favorites) {
+        await favoritesBox.put(favorite['id'], favorite);
+      }
+
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           SnackBar(
@@ -159,6 +179,14 @@ class BackupSettingsScreen extends ConsumerWidget {
             duration: const Duration(seconds: 2),
           ),
         );
+
+        // Force reload chats and favorites
+        final chatListNotifier = ref.read(chatListProvider.notifier);
+        final favoritesNotifier =
+            ref.read(favoritesControllerProvider.notifier);
+
+        chatListNotifier._loadChats();
+        favoritesNotifier._loadFavorites();
       }
     } catch (e) {
       if (context.mounted) {
