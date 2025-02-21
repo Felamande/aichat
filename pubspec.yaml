@@ -1,0 +1,21 @@
+# The following section is specific to Flutter packages.
+name: aichat
+description: A new Flutter project
+publish_to: 'none'
+
+environment:
+  sdk: '>=3.0.0 <4.0.0'
+  flutter: ">=3.0.0"
+
+dependencies:
+  flutter:
+    sdk: flutter
+  file_picker: ^5.3.1
+  cupertino_icons: ^1.0.2
+
+flutter:
+  uses-material-design: true
+
+  assets:
+    - assets/images/
+    - assets/icons/ 
