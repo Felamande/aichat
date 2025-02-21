@@ -256,6 +256,7 @@ class ChatListScreen extends ConsumerWidget {
                     );
                   },
                   onDelete: () async {
+                    final scaffoldMessenger = ScaffoldMessenger.of(context);
                     final shouldDelete = await showDialog<bool>(
                       context: context,
                       builder: (context) => AlertDialog(
@@ -279,13 +280,11 @@ class ChatListScreen extends ConsumerWidget {
 
                     if (shouldDelete == true) {
                       ref.read(chatListProvider.notifier).removeChat(chat.id);
-                      if (context.mounted) {
-                        ScaffoldMessenger.of(context).showSnackBar(
-                          SnackBar(
-                            content: Text(l10n.get('chat_deleted')),
-                          ),
-                        );
-                      }
+                      scaffoldMessenger.showSnackBar(
+                        SnackBar(
+                          content: Text(l10n.get('chat_deleted')),
+                        ),
+                      );
                     }
                   },
                   onLongPress: () {
@@ -344,11 +343,12 @@ class ChatListScreen extends ConsumerWidget {
                               enabled: !isFavorite,
                               onTap: isFavorite
                                   ? null
-                                  : () async {
+                                  : () {
+                                      final scaffoldMessenger =
+                                          ScaffoldMessenger.of(context);
                                       Navigator.pop(
-                                          context); // Close bottom sheet first
-                                      final shouldDelete =
-                                          await showDialog<bool>(
+                                          context); // Close bottom sheet
+                                      showDialog<bool>(
                                         context: context,
                                         builder: (context) => AlertDialog(
                                           title: Text(l10n.get('delete_chat')),
@@ -371,21 +371,19 @@ class ChatListScreen extends ConsumerWidget {
                                             ),
                                           ],
                                         ),
-                                      );
-
-                                      if (shouldDelete == true &&
-                                          context.mounted) {
-                                        ref
-                                            .read(chatListProvider.notifier)
-                                            .removeChat(chat.id);
-                                        ScaffoldMessenger.of(context)
-                                            .showSnackBar(
-                                          SnackBar(
-                                            content:
-                                                Text(l10n.get('chat_deleted')),
-                                          ),
-                                        );
-                                      }
+                                      ).then((shouldDelete) {
+                                        if (shouldDelete == true) {
+                                          ref
+                                              .read(chatListProvider.notifier)
+                                              .removeChat(chat.id);
+                                          scaffoldMessenger.showSnackBar(
+                                            SnackBar(
+                                              content: Text(
+                                                  l10n.get('chat_deleted')),
+                                            ),
+                                          );
+                                        }
+                                      });
                                     },
                             ),
                           ],
