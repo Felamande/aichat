@@ -1,108 +1,139 @@
 # AIChat
 
 <div align="center">
-
-![AIChat Logo](aichat/assets/icons/app_icon.png)
-
-A modern, feature-rich AI chat application built with Flutter and fully developed using [Cursor](https://cursor.sh)
-
+  <img src="assets/icons/app_icon.svg" alt="AIChat Logo" width="128" height="128">
+  <h3>A Modern Flutter Chat Application for AI Interactions</h3>
+  <p><em>Developed with ❤️ using Cursor</em></p>
 </div>
 
-## ✨ Features
+## Features
 
-- 🌐 **Multiple API Support**: Configure and use multiple AI APIs seamlessly
-- 🔄 **Context Management**: Smart context handling with split functionality
-- 💬 **Rich Message Handling**: Support for markdown, code blocks, and reasoning content
-- ⭐ **Favorites System**: Save and organize your favorite messages and chats
-- 🌙 **Theme Support**: Light, dark, and system themes
-- 🌍 **Localization**: English and Chinese language support
-- 💾 **Backup & Restore**: Export and import your data with ease
-- 📝 **Enhanced Editor**: Expandable message editor for long messages
-- 🔒 **Secure**: Local storage with encrypted API keys
+### 🤖 Multiple API Support
+- Support for multiple AI API endpoints
+- Easy configuration of API settings
+- Seamless switching between different APIs during chat
+- Custom API endpoint support with configurable base URLs
 
-## 🛠️ Development
+### 💬 Rich Chat Features
+- Real-time streaming responses
+- Code syntax highlighting
+- Markdown rendering support
+- Multi-line input with expandable editor
+- Context management with split markers
+- Stop/continue generation control
 
-This project is proudly developed using [Cursor](https://cursor.sh), leveraging its powerful AI capabilities for enhanced development workflow. Cursor's features have significantly contributed to the project's architecture and code quality.
+### ⭐ Enhanced Favorites System
+- Save individual messages or entire message threads
+- Multi-message favorites support with preserved context
+- View favorites in chat-like interface with original formatting
+- Quick access to favorite messages and conversations
+- Edit favorite titles and manage collections
 
-### Tech Stack
+### 🎨 User Interface
+- Modern Material Design 3 interface
+- Responsive and adaptive layout
+- Dark and light theme support
+- Beautiful message bubbles with user/assistant distinction
+- Expandable text editor for long messages
+- Smooth animations and transitions
 
-- **Framework**: Flutter
-- **State Management**: Riverpod
-- **Storage**: Hive
-- **Localization**: Custom implementation
-- **UI Components**: Material Design 3
-- **IDE**: Cursor
+### 🌐 Localization
+- English and Chinese language support
+- Easy addition of new languages
+- Dynamic language switching
+- Localized error messages and UI elements
 
-## 🚀 Getting Started
+### 💾 Data Management
+- Local storage of chats and settings
+- Backup and restore functionality
+- Export and import of chat data
+- Secure API key storage
 
+## Getting Started
+
+### Prerequisites
+- Flutter SDK (3.2.3 or higher)
+- Dart SDK (3.2.3 or higher)
+- An API key from your preferred AI service provider
+
+### Installation
 1. Clone the repository:
    ```bash
    git clone https://github.com/Felamande/aichat.git
    ```
 
-2. Install dependencies:
+2. Navigate to the project directory:
    ```bash
    cd aichat
+   ```
+
+3. Install dependencies:
+   ```bash
    flutter pub get
    ```
 
-3. Run the app:
+4. Run the application:
    ```bash
    flutter run
    ```
 
-## 📱 Features in Detail
+## Features in Detail
+
+### Chat Interface
+- **Multi-line Input**: Type messages in a flexible input field that expands up to 5 lines
+- **Expandable Editor**: Access a full-screen editor for longer messages
+- **Context Management**: Use split markers to manage conversation context
+- **Real-time Responses**: See AI responses as they're generated
+- **Message Actions**: Copy, favorite, or delete messages with ease
+
+### Favorites System
+- **Multi-message Selection**: Select multiple messages to favorite them together
+- **Context Preservation**: Keep the conversation flow intact in favorites
+- **Rich Preview**: View message content and reasoning in the favorites list
+- **Detailed View**: See full message threads in their original format
+- **Easy Management**: Edit titles and organize your favorite content
 
 ### API Configuration
 - Add multiple API endpoints
-- Configure base URLs, API keys, and models
-- Set default configurations
+- Configure custom base URLs and API keys
+- Set default models for each API
+- Quick switching between APIs during chat
 - Secure storage of API credentials
 
-### Chat Features
-- Real-time message streaming
-- Context management with split functionality
-- Message favoriting
-- Chat and message search
-- Expandable message editor
-- Markdown support
-- Code block highlighting
-
-### User Interface
-- Modern Material Design 3
-- Adaptive themes (Light/Dark/System)
-- Responsive layout
-- Smooth animations
-- Intuitive navigation
+### Theme and Localization
+- System, light, and dark theme options
+- Dynamic theme switching
+- Language selection (English/Chinese)
+- Localized interface elements
+- RTL support
 
 ### Data Management
-- Local storage using Hive
-- Backup and restore functionality
-- Export/Import support
-- Secure API key storage
+- Local storage of all chat data
+- Export chats and settings
+- Import backup data
+- Secure credential storage
+- Data persistence across sessions
 
-## 🌍 Localization
+## Contributing
 
-Currently supports:
-- English (en)
-- Chinese (zh)
+Contributions are welcome! Please feel free to submit pull requests.
 
-## 🤝 Contributing
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Open a pull request
 
-Contributions are welcome! Please feel free to submit a Pull Request. For major changes, please open an issue first to discuss what you would like to change.
-
-## 📄 License
+## License
 
 This project is licensed under the MIT License - see the [LICENSE](LICENSE) file for details.
 
-## 🙏 Acknowledgments
+## Acknowledgments
 
-- [Cursor](https://cursor.sh) - The AI-powered IDE that made this development possible
-- Flutter team for the amazing framework
-- All contributors and users of the application
-
----
+- Developed using [Cursor](https://cursor.sh), the world's best IDE
+- Built with Flutter and Dart
+- Special thanks to all contributors
 
 <div align="center">
-Made with ❤️ using Cursor
-</div>
+  <p><em>Made with Cursor - The Modern IDE for Modern Developers</em></p>
+</div> 
