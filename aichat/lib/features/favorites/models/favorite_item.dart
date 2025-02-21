@@ -9,6 +9,7 @@ class FavoriteItem {
   final DateTime timestamp;
   final bool isChat;
   final String? chatId;
+  final List<Message> messages;
 
   FavoriteItem({
     required this.id,
@@ -18,6 +19,7 @@ class FavoriteItem {
     required this.timestamp,
     required this.isChat,
     this.chatId,
+    this.messages = const [],
   });
 
   factory FavoriteItem.fromChat(Chat chat) {
@@ -40,6 +42,19 @@ class FavoriteItem {
       timestamp: message.timestamp,
       isChat: false,
       chatId: chat.id,
+      messages: [message],
+    );
+  }
+
+  factory FavoriteItem.fromMessages(List<Message> messages, Chat chat) {
+    return FavoriteItem(
+      id: DateTime.now().millisecondsSinceEpoch.toString(),
+      title: chat.title,
+      content: messages.map((m) => m.content).join('\n\n'),
+      timestamp: messages.last.timestamp,
+      isChat: false,
+      chatId: chat.id,
+      messages: messages,
     );
   }
 
@@ -52,6 +67,7 @@ class FavoriteItem {
       'timestamp': timestamp.toIso8601String(),
       'isChat': isChat,
       'chatId': chatId,
+      'messages': messages.map((m) => m.toJson()).toList(),
     };
   }
 
@@ -64,6 +80,10 @@ class FavoriteItem {
       timestamp: DateTime.parse(json['timestamp'] as String),
       isChat: json['isChat'] as bool,
       chatId: json['chatId'] as String?,
+      messages: (json['messages'] as List?)
+              ?.map((m) => Message.fromJson(Map<String, dynamic>.from(m)))
+              .toList() ??
+          [],
     );
   }
 }

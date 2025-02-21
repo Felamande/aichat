@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/chat_controller.dart';
 import '../widgets/message_bubble.dart';
 import '../../favorites/controllers/favorites_controller.dart';
+import '../../favorites/models/favorite_item.dart';
 import '../../../core/models/message.dart';
 import '../../../core/models/chat.dart';
 import '../../../core/models/api_config.dart';
@@ -28,6 +29,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   bool _isComposing = false;
   bool _shouldAutoScroll = true;
   bool _isNearBottom = true;
+  bool _isSelectionMode = false;
+  Set<String> _selectedMessageIds = {};
   late AppLocalizations l10n;
   static const double _scrollThreshold =
       100.0; // Distance from bottom to consider "near bottom"
@@ -171,6 +174,50 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
+  void _toggleMessageSelection(Message message) {
+    setState(() {
+      if (_selectedMessageIds.contains(message.id)) {
+        _selectedMessageIds.remove(message.id);
+        if (_selectedMessageIds.isEmpty) {
+          _isSelectionMode = false;
+        }
+      } else {
+        _selectedMessageIds.add(message.id);
+        _isSelectionMode = true;
+      }
+    });
+  }
+
+  void _cancelSelection() {
+    setState(() {
+      _isSelectionMode = false;
+      _selectedMessageIds.clear();
+    });
+  }
+
+  Future<void> _favoriteSelectedMessages(Chat chat) async {
+    final selectedMessages =
+        chat.messages.where((m) => _selectedMessageIds.contains(m.id)).toList();
+
+    if (selectedMessages.isNotEmpty) {
+      final favorite = FavoriteItem.fromMessages(selectedMessages, chat);
+      await ref
+          .read(favoritesControllerProvider.notifier)
+          .addFavorite(favorite);
+
+      if (mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text(l10n.get('message_favorite_added')),
+            duration: const Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+
+    _cancelSelection();
+  }
+
   Widget _buildMessageList(Chat chat) {
     return ListView.builder(
       controller: _scrollController,
@@ -232,90 +279,112 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     return Scaffold(
       appBar: AppBar(
-        title: chatState.when(
-          data: (chat) => Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              GestureDetector(
-                onTap: () => _showEditTitleDialog(chat),
-                child: Row(
+        leading: _isSelectionMode
+            ? IconButton(
+                icon: const Icon(Icons.close),
+                onPressed: _cancelSelection,
+              )
+            : null,
+        title: _isSelectionMode
+            ? Text('${_selectedMessageIds.length} selected')
+            : chatState.when(
+                data: (chat) => Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
                   children: [
-                    Expanded(child: Text(chat.title)),
-                    Icon(
-                      Icons.edit,
-                      size: 16,
-                      color: theme.colorScheme.onSurface.withOpacity(0.6),
-                    ),
-                  ],
-                ),
-              ),
-              FutureBuilder<List<ApiConfig>>(
-                future: ref.read(apiConfigServiceProvider).getAllConfigs(),
-                builder: (context, snapshot) {
-                  final apiConfig = snapshot.data?.firstWhere(
-                    (config) => config.id == chat.apiConfigId,
-                    orElse: () => snapshot.data?.first ?? ApiConfig.empty(),
-                  );
-                  return GestureDetector(
-                    onTap: ref
-                            .watch(
-                                chatControllerProvider(widget.chatId).notifier)
-                            .isSending
-                        ? null
-                        : () => _showApiSelector(chat),
-                    child: Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        Text(
-                          apiConfig?.name ?? l10n.get('no_api_selected'),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(ref
-                                    .watch(chatControllerProvider(widget.chatId)
-                                        .notifier)
-                                    .isSending
-                                ? 0.4
-                                : 0.6),
+                    GestureDetector(
+                      onTap: () => _showEditTitleDialog(chat),
+                      child: Row(
+                        children: [
+                          Expanded(child: Text(chat.title)),
+                          Icon(
+                            Icons.edit,
+                            size: 16,
+                            color: theme.colorScheme.onSurface.withOpacity(0.6),
                           ),
-                        ),
-                        Icon(
-                          Icons.arrow_drop_down,
-                          color: theme.colorScheme.onSurface.withOpacity(ref
+                        ],
+                      ),
+                    ),
+                    FutureBuilder<List<ApiConfig>>(
+                      future:
+                          ref.read(apiConfigServiceProvider).getAllConfigs(),
+                      builder: (context, snapshot) {
+                        final apiConfig = snapshot.data?.firstWhere(
+                          (config) => config.id == chat.apiConfigId,
+                          orElse: () =>
+                              snapshot.data?.first ?? ApiConfig.empty(),
+                        );
+                        return GestureDetector(
+                          onTap: ref
                                   .watch(chatControllerProvider(widget.chatId)
                                       .notifier)
                                   .isSending
-                              ? 0.4
-                              : 0.6),
-                          size: 16,
-                        ),
-                      ],
+                              ? null
+                              : () => _showApiSelector(chat),
+                          child: Row(
+                            mainAxisSize: MainAxisSize.min,
+                            children: [
+                              Text(
+                                apiConfig?.name ?? l10n.get('no_api_selected'),
+                                style: theme.textTheme.bodySmall?.copyWith(
+                                  color: theme.colorScheme.onSurface
+                                      .withOpacity(ref
+                                              .watch(chatControllerProvider(
+                                                      widget.chatId)
+                                                  .notifier)
+                                              .isSending
+                                          ? 0.4
+                                          : 0.6),
+                                ),
+                              ),
+                              Icon(
+                                Icons.arrow_drop_down,
+                                color: theme.colorScheme.onSurface.withOpacity(
+                                    ref
+                                            .watch(chatControllerProvider(
+                                                    widget.chatId)
+                                                .notifier)
+                                            .isSending
+                                        ? 0.4
+                                        : 0.6),
+                                size: 16,
+                              ),
+                            ],
+                          ),
+                        );
+                      },
                     ),
-                  );
-                },
+                  ],
+                ),
+                loading: () => Text(l10n.get('loading')),
+                error: (error, _) => Text('${l10n.get('error_prefix')}$error'),
               ),
-            ],
-          ),
-          loading: () => Text(l10n.get('loading')),
-          error: (error, _) => Text('${l10n.get('error_prefix')}$error'),
-        ),
         actions: [
-          chatState.when(
-            data: (chat) => IconButton(
-              icon: Icon(
-                favorites.any((item) => item.id == chat.id && item.isChat)
-                    ? Icons.star
-                    : Icons.star_outline,
+          if (_isSelectionMode) ...[
+            IconButton(
+              icon: const Icon(Icons.star_outline),
+              onPressed: () => chatState.whenData(
+                (chat) => _favoriteSelectedMessages(chat),
               ),
-              onPressed: () {
-                ref
-                    .read(favoritesControllerProvider.notifier)
-                    .toggleChatFavorite(chat);
-              },
-              visualDensity: VisualDensity.compact,
-              padding: const EdgeInsets.all(8),
             ),
-            loading: () => const SizedBox(),
-            error: (_, __) => const SizedBox(),
-          ),
+          ] else
+            chatState.when(
+              data: (chat) => IconButton(
+                icon: Icon(
+                  favorites.any((item) => item.id == chat.id && item.isChat)
+                      ? Icons.star
+                      : Icons.star_outline,
+                ),
+                onPressed: () {
+                  ref
+                      .read(favoritesControllerProvider.notifier)
+                      .toggleChatFavorite(chat);
+                },
+                visualDensity: VisualDensity.compact,
+                padding: const EdgeInsets.all(8),
+              ),
+              loading: () => const SizedBox(),
+              error: (_, __) => const SizedBox(),
+            ),
           PopupMenuButton(
             padding: const EdgeInsets.symmetric(horizontal: 8),
             icon: const Icon(Icons.more_vert),
@@ -383,6 +452,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       chat: chat,
                       scrollController: _scrollController,
                       l10n: l10n,
+                      isSelectionMode: _isSelectionMode,
+                      selectedMessageIds: _selectedMessageIds,
+                      onMessageSelected: _toggleMessageSelection,
                     ),
             ),
             const Divider(height: 1),
@@ -743,12 +815,18 @@ class MessageList extends ConsumerWidget {
   final Chat chat;
   final ScrollController scrollController;
   final AppLocalizations l10n;
+  final bool isSelectionMode;
+  final Set<String> selectedMessageIds;
+  final Function(Message) onMessageSelected;
 
   const MessageList({
     super.key,
     required this.chat,
     required this.scrollController,
     required this.l10n,
+    required this.isSelectionMode,
+    required this.selectedMessageIds,
+    required this.onMessageSelected,
   });
 
   @override
@@ -785,6 +863,9 @@ class MessageList extends ConsumerWidget {
                 .deleteMessage(message.id);
           },
           l10n: l10n,
+          isSelected:
+              isSelectionMode && selectedMessageIds.contains(message.id),
+          onSelect: () => onMessageSelected(message),
         );
       },
     );

@@ -4,6 +4,8 @@ import 'package:gpt_markdown/gpt_markdown.dart';
 import '../models/favorite_item.dart';
 import '../controllers/favorites_controller.dart';
 import '../../../l10n/translations.dart';
+import '../../chat/widgets/message_bubble.dart';
+import '../../../core/models/message.dart';
 
 class FavoriteDetailScreen extends ConsumerWidget {
   final FavoriteItem favorite;
@@ -46,6 +48,7 @@ class FavoriteDetailScreen extends ConsumerWidget {
                   timestamp: favorite.timestamp,
                   isChat: favorite.isChat,
                   chatId: favorite.chatId,
+                  messages: favorite.messages,
                 );
                 await ref
                     .read(favoritesControllerProvider.notifier)
@@ -66,8 +69,6 @@ class FavoriteDetailScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
-    final screenWidth = MediaQuery.of(context).size.width;
-    final contentWidth = screenWidth - 64; // Account for all paddings
 
     return Scaffold(
       appBar: AppBar(
@@ -85,62 +86,93 @@ class FavoriteDetailScreen extends ConsumerWidget {
           ),
         ),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(16),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Card(
-              child: Padding(
-                padding: const EdgeInsets.all(16),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Container(
-                      width: contentWidth,
-                      child: GptMarkdown(
+      body: favorite.messages.isEmpty
+          ? SingleChildScrollView(
+              padding: const EdgeInsets.all(16),
+              child: Card(
+                child: Padding(
+                  padding: const EdgeInsets.all(16),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      GptMarkdown(
                         favorite.content,
                         style: theme.textTheme.bodyLarge?.copyWith(
                           color: theme.colorScheme.onSurface,
                         ),
                       ),
-                    ),
-                    if (favorite.reasoningContent != null &&
-                        favorite.reasoningContent!.trim().isNotEmpty) ...[
-                      const SizedBox(height: 16),
-                      Container(
-                        width: contentWidth,
-                        padding: const EdgeInsets.all(12),
-                        decoration: BoxDecoration(
-                          color:
-                              theme.colorScheme.surfaceVariant.withOpacity(0.5),
-                          borderRadius: BorderRadius.circular(8),
-                        ),
-                        child: Column(
-                          crossAxisAlignment: CrossAxisAlignment.start,
-                          children: [
-                            Text(
-                              l10n.get('reasoning'),
-                              style: theme.textTheme.titleSmall,
-                            ),
-                            const SizedBox(height: 8),
-                            GptMarkdown(
-                              favorite.reasoningContent!,
-                              style: theme.textTheme.bodyMedium?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
+                      if (favorite.reasoningContent != null &&
+                          favorite.reasoningContent!.trim().isNotEmpty) ...[
+                        const SizedBox(height: 16),
+                        Container(
+                          padding: const EdgeInsets.all(12),
+                          decoration: BoxDecoration(
+                            color: theme.colorScheme.surfaceVariant
+                                .withOpacity(0.5),
+                            borderRadius: BorderRadius.circular(8),
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Text(
+                                l10n.get('reasoning'),
+                                style: theme.textTheme.titleSmall,
                               ),
-                            ),
-                          ],
+                              const SizedBox(height: 8),
+                              GptMarkdown(
+                                favorite.reasoningContent!,
+                                style: theme.textTheme.bodyMedium?.copyWith(
+                                  color: theme.colorScheme.onSurfaceVariant,
+                                ),
+                              ),
+                            ],
+                          ),
                         ),
-                      ),
+                      ],
                     ],
-                  ],
+                  ),
                 ),
               ),
+            )
+          : FavoriteMessageList(
+              messages: favorite.messages,
+              l10n: l10n,
             ),
-          ],
-        ),
-      ),
+    );
+  }
+}
+
+class FavoriteMessageList extends StatelessWidget {
+  final List<Message> messages;
+  final AppLocalizations l10n;
+
+  const FavoriteMessageList({
+    super.key,
+    required this.messages,
+    required this.l10n,
+  });
+
+  @override
+  Widget build(BuildContext context) {
+    return ListView.builder(
+      padding: const EdgeInsets.all(8.0),
+      itemCount: messages.length,
+      itemBuilder: (context, index) {
+        final message = messages[index];
+        return MessageBubble(
+          message: message,
+          l10n: l10n,
+          isFavorite: true,
+          onCopy: (content) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text(l10n.get('message_copied')),
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          },
+        );
+      },
     );
   }
 }
