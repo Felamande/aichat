@@ -7,6 +7,7 @@ import 'package:url_launcher/url_launcher.dart';
 import '../../../core/models/message.dart';
 import '../../../core/services/attachment_service.dart';
 import 'package:flutter/rendering.dart';
+import '../../../l10n/translations.dart';
 
 class MessageBubble extends StatelessWidget {
   final Message message;
@@ -15,6 +16,7 @@ class MessageBubble extends StatelessWidget {
   final VoidCallback? onFavorite;
   final bool isFavorite;
   final VoidCallback? onTap;
+  final AppLocalizations l10n;
 
   const MessageBubble({
     super.key,
@@ -24,6 +26,7 @@ class MessageBubble extends StatelessWidget {
     this.onFavorite,
     this.isFavorite = false,
     this.onTap,
+    required this.l10n,
   });
 
   @override
@@ -40,7 +43,7 @@ class MessageBubble extends StatelessWidget {
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
               child: Text(
-                'Context Split',
+                l10n.get('context_split'),
                 style: theme.textTheme.bodySmall?.copyWith(
                   color: theme.colorScheme.onSurfaceVariant.withOpacity(0.6),
                 ),

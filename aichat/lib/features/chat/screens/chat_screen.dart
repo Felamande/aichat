@@ -64,7 +64,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final selectedConfig = await showDialog<ApiConfig>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Select API'),
+        title: Text(AppLocalizations.of(context).get('select_api_title')),
         content: SizedBox(
           width: double.maxFinite,
           child: ListView.builder(
@@ -87,7 +87,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(AppLocalizations.of(context).get('cancel')),
           ),
         ],
       ),
@@ -162,9 +162,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     await Clipboard.setData(ClipboardData(text: content));
     if (mounted) {
       ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(
-          content: Text('Message copied to clipboard'),
-          duration: Duration(seconds: 2),
+        SnackBar(
+          content: Text(AppLocalizations.of(context).get('message_copied')),
+          duration: const Duration(seconds: 2),
         ),
       );
     }
@@ -184,7 +184,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           children: [
             ListTile(
               leading: const Icon(Icons.copy),
-              title: const Text('Copy Message'),
+              title: Text(AppLocalizations.of(context).get('copy_message')),
               onTap: () {
                 _copyMessageToClipboard(message.content);
                 Navigator.pop(context);
@@ -195,7 +195,9 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 isFavorite ? Icons.star : Icons.star_outline,
               ),
               title: Text(
-                isFavorite ? 'Remove from Favorites' : 'Add to Favorites',
+                isFavorite
+                    ? AppLocalizations.of(context).get('remove_from_favorites')
+                    : AppLocalizations.of(context).get('add_to_favorites'),
               ),
               onTap: () {
                 ref
@@ -210,7 +212,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 color: theme.colorScheme.error,
               ),
               title: Text(
-                'Delete Message',
+                AppLocalizations.of(context).get('delete_message'),
                 style: TextStyle(
                   color: theme.colorScheme.error,
                 ),
@@ -231,9 +233,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   void _handleAttachment() async {
     // Temporarily disabled
     ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(
-        content: Text('File attachments are temporarily disabled'),
-        duration: Duration(seconds: 2),
+      SnackBar(
+        content:
+            Text(AppLocalizations.of(context).get('file_attachments_disabled')),
+        duration: const Duration(seconds: 2),
       ),
     );
   }
@@ -254,9 +257,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           isFavorite: isFavorite,
           onCopy: (content) {
             ScaffoldMessenger.of(context).showSnackBar(
-              const SnackBar(
-                content: Text('Message copied to clipboard'),
-                duration: Duration(seconds: 2),
+              SnackBar(
+                content:
+                    Text(AppLocalizations.of(context).get('message_copied')),
+                duration: const Duration(seconds: 2),
               ),
             );
           },
@@ -270,6 +274,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 .read(chatControllerProvider(widget.chatId).notifier)
                 .deleteMessage(message.id);
           },
+          l10n: AppLocalizations.of(context),
         );
       },
     );
@@ -302,7 +307,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       mainAxisSize: MainAxisSize.min,
                       children: [
                         Text(
-                          apiConfig?.name ?? 'No API Selected',
+                          apiConfig?.name ?? l10n.get('no_api_selected'),
                           style: theme.textTheme.bodySmall?.copyWith(
                             color: theme.colorScheme.onSurface.withOpacity(0.6),
                           ),
@@ -319,8 +324,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               ),
             ],
           ),
-          loading: () => const Text('Loading...'),
-          error: (error, _) => Text('Error: $error'),
+          loading: () => Text(l10n.get('loading')),
+          error: (error, _) => Text('${l10n.get('error_prefix')}$error'),
         ),
         actions: [
           chatState.when(
@@ -342,7 +347,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           PopupMenuButton(
             itemBuilder: (context) => [
               PopupMenuItem(
-                child: const Text('Select API'),
+                child: Text(l10n.get('select_api')),
                 onTap: () {
                   chatState.whenData((chat) {
                     Future.microtask(() => _showApiSelector(chat));
@@ -350,7 +355,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 },
               ),
               PopupMenuItem(
-                child: const Text('Clear Context'),
+                child: Text(l10n.get('clear_context_menu')),
                 onTap: () {
                   ref
                       .read(chatControllerProvider(widget.chatId).notifier)
@@ -377,12 +382,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           ),
                           const SizedBox(height: 16),
                           Text(
-                            'No messages yet',
+                            l10n.get('no_messages_title'),
                             style: theme.textTheme.titleLarge,
                           ),
                           const SizedBox(height: 8),
                           Text(
-                            'Start the conversation',
+                            l10n.get('start_conversation'),
                             style: theme.textTheme.bodyMedium?.copyWith(
                               color:
                                   theme.colorScheme.onSurface.withOpacity(0.6),
@@ -493,7 +498,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           ],
         ),
         loading: () => const Center(child: CircularProgressIndicator()),
-        error: (error, _) => Center(child: Text('Error: $error')),
+        error: (error, _) =>
+            Center(child: Text('${l10n.get('error_prefix')}$error')),
       ),
     );
   }

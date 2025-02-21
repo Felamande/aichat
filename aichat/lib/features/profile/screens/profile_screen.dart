@@ -5,7 +5,8 @@ import '../../../core/models/api_config.dart';
 import '../../settings/screens/api_settings_screen.dart';
 import '../../settings/screens/settings_screen.dart';
 import '../../settings/screens/help_screen.dart';
-import '../../../features/settings/screens/backup_settings_screen.dart';
+import '../../settings/screens/backup_settings_screen.dart';
+import '../../../l10n/translations.dart';
 
 final packageInfoProvider = FutureProvider<PackageInfo>((ref) {
   return PackageInfo.fromPlatform();
@@ -18,6 +19,7 @@ class ProfileScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final packageInfo = ref.watch(packageInfoProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -72,7 +74,7 @@ class ProfileScreen extends ConsumerWidget {
           const Divider(),
           ListTile(
             leading: const Icon(Icons.backup),
-            title: const Text('Backup Settings'),
+            title: Text(l10n.get('backup_settings')),
             onTap: () {
               Navigator.push(
                 context,
@@ -84,7 +86,7 @@ class ProfileScreen extends ConsumerWidget {
           ),
           ListTile(
             leading: const Icon(Icons.help_outline),
-            title: const Text('Help & Feedback'),
+            title: Text(l10n.get('help_feedback')),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               Navigator.push(
@@ -97,12 +99,16 @@ class ProfileScreen extends ConsumerWidget {
           ),
           ListTile(
             leading: const Icon(Icons.info_outline),
-            title: const Text('About'),
+            title: Text(l10n.get('about')),
             subtitle: packageInfo.when(
-              data: (info) =>
-                  Text('Version ${info.version} (${info.buildNumber})'),
-              loading: () => const Text('Loading...'),
-              error: (_, __) => const Text('Error loading version info'),
+              data: (info) => Text(
+                l10n
+                    .get('version')
+                    .replaceAll('{version}', info.version)
+                    .replaceAll('{buildNumber}', info.buildNumber),
+              ),
+              loading: () => Text(l10n.get('loading_version')),
+              error: (_, __) => Text(l10n.get('version_error')),
             ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
@@ -121,6 +127,7 @@ class _UserHeader extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Padding(
       padding: const EdgeInsets.all(16),
@@ -147,12 +154,12 @@ class _UserHeader extends StatelessWidget {
               crossAxisAlignment: CrossAxisAlignment.start,
               children: [
                 Text(
-                  'Local User',
+                  l10n.get('local_user'),
                   style: theme.textTheme.titleLarge,
                 ),
                 const SizedBox(height: 4),
                 Text(
-                  'Using local storage',
+                  l10n.get('local_storage'),
                   style: theme.textTheme.bodyMedium?.copyWith(
                     color: theme.colorScheme.onSurface.withOpacity(0.6),
                   ),

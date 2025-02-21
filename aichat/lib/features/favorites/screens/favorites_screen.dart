@@ -7,6 +7,7 @@ import '../../search/screens/search_screen.dart';
 import '../models/favorite_item.dart';
 import '../../../core/models/chat.dart';
 import '../../../core/models/message.dart';
+import '../../../l10n/translations.dart';
 
 final favoritesProvider =
     StateNotifierProvider<FavoritesNotifier, List<FavoriteItem>>((ref) {
@@ -34,10 +35,11 @@ class FavoritesScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final favorites = ref.watch(favoritesControllerProvider);
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Favorites'),
+        title: Text(l10n.get('favorites')),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),
@@ -64,12 +66,12 @@ class FavoritesScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'No favorites yet',
+                    l10n.get('no_favorites'),
                     style: theme.textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Star messages or chats to save them here',
+                    l10n.get('favorites_hint'),
                     style: theme.textTheme.bodyMedium?.copyWith(
                       color: theme.colorScheme.onSurface.withOpacity(0.6),
                     ),

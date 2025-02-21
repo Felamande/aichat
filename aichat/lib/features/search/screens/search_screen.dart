@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:intl/intl.dart';
 import '../../../core/services/search_service.dart';
 import '../../chat/screens/chat_screen.dart';
+import '../../../l10n/translations.dart';
 
 final searchQueryProvider = StateProvider<String>((ref) => '');
 final searchResultsProvider =
@@ -22,14 +23,16 @@ class SearchScreen extends ConsumerWidget {
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
     final results = ref.watch(searchResultsProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
         title: TextField(
           autofocus: true,
           decoration: InputDecoration(
-            hintText:
-                chatId != null ? 'Search in chat' : 'Search chats and messages',
+            hintText: chatId != null
+                ? l10n.get('search_in_chat')
+                : l10n.get('search_chats_messages'),
             border: InputBorder.none,
             hintStyle:
                 TextStyle(color: theme.colorScheme.onSurface.withOpacity(0.5)),
@@ -53,12 +56,12 @@ class SearchScreen extends ConsumerWidget {
                     ),
                     const SizedBox(height: 16),
                     Text(
-                      'No results found',
+                      l10n.get('no_results'),
                       style: theme.textTheme.titleLarge,
                     ),
                     const SizedBox(height: 8),
                     Text(
-                      'Try different keywords',
+                      l10n.get('try_different'),
                       style: theme.textTheme.bodyMedium?.copyWith(
                         color: theme.colorScheme.onSurface.withOpacity(0.6),
                       ),
@@ -77,7 +80,9 @@ class SearchScreen extends ConsumerWidget {
                     ),
                     title: Text(
                       result.isMessageMatch
-                          ? 'Message in ${result.chat.title}'
+                          ? l10n
+                              .get('message_in_chat')
+                              .replaceAll('{chatTitle}', result.chat.title)
                           : result.chat.title,
                     ),
                     subtitle: Column(

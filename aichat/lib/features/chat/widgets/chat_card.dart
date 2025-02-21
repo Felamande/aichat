@@ -2,12 +2,14 @@ import 'package:flutter/material.dart';
 import 'package:flutter_slidable/flutter_slidable.dart';
 import 'package:intl/intl.dart';
 import '../../../core/models/chat.dart';
+import '../../../l10n/translations.dart';
 
 class ChatCard extends StatelessWidget {
   final Chat chat;
   final VoidCallback onTap;
   final VoidCallback onDelete;
   final VoidCallback onLongPress;
+  final AppLocalizations l10n;
 
   const ChatCard({
     super.key,
@@ -15,11 +17,12 @@ class ChatCard extends StatelessWidget {
     required this.onTap,
     required this.onDelete,
     required this.onLongPress,
+    required this.l10n,
   });
 
   String get lastMessagePreview {
     if (chat.messages.isEmpty) {
-      return 'No messages yet';
+      return l10n.get('no_messages_preview');
     }
     return chat.messages.last.content.length > 50
         ? '${chat.messages.last.content.substring(0, 50)}...'

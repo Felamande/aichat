@@ -7,6 +7,7 @@ import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import '../../../core/models/chat.dart';
 import '../../../core/models/api_config.dart';
+import '../../../l10n/translations.dart';
 
 class BackupSettingsScreen extends ConsumerWidget {
   const BackupSettingsScreen({super.key});
@@ -51,29 +52,30 @@ class BackupSettingsScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Backup & Restore'),
+        title: Text(l10n.get('backup_restore')),
       ),
       body: ListView(
         children: [
           ListTile(
             leading: const Icon(Icons.upload),
-            title: const Text('Export Data'),
-            subtitle: const Text('Save your chats and settings'),
+            title: Text(l10n.get('export_data')),
+            subtitle: Text(l10n.get('export_data_desc')),
             onTap: () => _exportData(context),
           ),
           ListTile(
             leading: const Icon(Icons.download),
-            title: const Text('Import Data'),
-            subtitle: const Text('Restore from backup'),
+            title: Text(l10n.get('import_data')),
+            subtitle: Text(l10n.get('import_data_desc')),
             onTap: () => _importData(context),
           ),
           Padding(
             padding: const EdgeInsets.all(16),
             child: Text(
-              'Warning: Importing data will replace all existing chats and settings.',
+              l10n.get('import_warning'),
               style: theme.textTheme.bodySmall?.copyWith(
                 color: theme.colorScheme.error,
               ),

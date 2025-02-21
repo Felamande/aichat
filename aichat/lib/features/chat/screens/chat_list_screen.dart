@@ -9,6 +9,7 @@ import '../../search/screens/search_screen.dart';
 import '../../settings/screens/settings_screen.dart';
 import '../../../core/services/api_config_service.dart';
 import '../../favorites/controllers/favorites_controller.dart';
+import '../../../l10n/translations.dart';
 
 final chatListProvider =
     StateNotifierProvider<ChatListNotifier, List<Chat>>((ref) {
@@ -101,17 +102,18 @@ class _NewChatDialogState extends State<_NewChatDialog> {
 
   @override
   Widget build(BuildContext context) {
+    final l10n = AppLocalizations.of(context);
     return AlertDialog(
-      title: const Text('New Chat'),
+      title: Text(l10n.get('new_chat')),
       content: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
           TextField(
             controller: _titleController,
             autofocus: true,
-            decoration: const InputDecoration(
-              labelText: 'Chat Title',
-              hintText: 'Enter a title for your chat',
+            decoration: InputDecoration(
+              labelText: l10n.get('chat_title'),
+              hintText: l10n.get('chat_title_hint'),
             ),
             onSubmitted: (_) => _createChat(),
           ),
@@ -120,11 +122,11 @@ class _NewChatDialogState extends State<_NewChatDialog> {
       actions: [
         TextButton(
           onPressed: () => Navigator.pop(context),
-          child: const Text('Cancel'),
+          child: Text(l10n.get('cancel')),
         ),
         TextButton(
           onPressed: _createChat,
-          child: const Text('Create'),
+          child: Text(l10n.get('create')),
         ),
       ],
     );
@@ -248,6 +250,7 @@ class ChatListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final chats = ref.watch(chatListProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -290,12 +293,12 @@ class ChatListScreen extends ConsumerWidget {
                   ),
                   const SizedBox(height: 16),
                   Text(
-                    'No chats yet',
+                    l10n.get('no_chats'),
                     style: Theme.of(context).textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    'Start a new conversation',
+                    l10n.get('start_new_chat'),
                     style: Theme.of(context).textTheme.bodyMedium?.copyWith(
                           color: Theme.of(context)
                               .colorScheme
@@ -315,6 +318,7 @@ class ChatListScreen extends ConsumerWidget {
                   onTap: () => _navigateToChat(context, chat.id),
                   onLongPress: () => _showChatOptions(context, ref, chat),
                   onDelete: () => _showDeleteConfirmation(context, ref, chat),
+                  l10n: AppLocalizations.of(context),
                 );
               },
             ),

@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../../core/models/api_config.dart';
 import '../../../core/services/api_config_service.dart';
+import '../../../l10n/translations.dart';
 
 class ApiSettingsScreen extends ConsumerStatefulWidget {
   const ApiSettingsScreen({super.key});
@@ -12,6 +13,103 @@ class ApiSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _ApiSettingsScreenState extends ConsumerState<ApiSettingsScreen> {
+  late AppLocalizations l10n;
+
+  @override
+  Widget build(BuildContext context) {
+    l10n = AppLocalizations.of(context);
+    return Scaffold(
+      appBar: AppBar(
+        title: const Text('API Settings'),
+        actions: [
+          IconButton(
+            icon: const Icon(Icons.add),
+            onPressed: () => _showConfigDialog(),
+          ),
+        ],
+      ),
+      body: FutureBuilder<Box<ApiConfig>>(
+        future: Hive.openBox<ApiConfig>('api_configs'),
+        builder: (context, snapshot) {
+          if (!snapshot.hasData) {
+            return const Center(child: CircularProgressIndicator());
+          }
+
+          final configs = snapshot.data!.values.toList();
+          return configs.isEmpty
+              ? Center(
+                  child: Column(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Icon(
+                        Icons.api_outlined,
+                        size: 64,
+                        color: Theme.of(context)
+                            .colorScheme
+                            .primary
+                            .withOpacity(0.5),
+                      ),
+                      const SizedBox(height: 16),
+                      Text(
+                        l10n.get('no_api_configs'),
+                        style: Theme.of(context).textTheme.titleMedium,
+                      ),
+                      const SizedBox(height: 8),
+                      Text(
+                        l10n.get('add_api_config_hint'),
+                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
+                              color: Theme.of(context)
+                                  .colorScheme
+                                  .onSurface
+                                  .withOpacity(0.6),
+                            ),
+                      ),
+                    ],
+                  ),
+                )
+              : ListView.builder(
+                  itemCount: configs.length,
+                  itemBuilder: (context, index) {
+                    final config = configs[index];
+                    return ListTile(
+                      title: Text(config.name),
+                      subtitle: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(config.baseUrl),
+                          Text(
+                            'Model: ${config.defaultModel}',
+                            style: Theme.of(context).textTheme.bodySmall,
+                          ),
+                        ],
+                      ),
+                      trailing: Row(
+                        mainAxisSize: MainAxisSize.min,
+                        children: [
+                          IconButton(
+                            icon: const Icon(Icons.copy),
+                            onPressed: () =>
+                                _showConfigDialog(config: config, isCopy: true),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.edit),
+                            onPressed: () => _showConfigDialog(config: config),
+                          ),
+                          IconButton(
+                            icon: const Icon(Icons.delete),
+                            onPressed: () => _showDeleteDialog(config),
+                          ),
+                        ],
+                      ),
+                      isThreeLine: true,
+                    );
+                  },
+                );
+        },
+      ),
+    );
+  }
+
   void _showConfigDialog({ApiConfig? config, bool isCopy = false}) {
     final nameController = TextEditingController(
         text: isCopy ? "${config?.name} (Copy)" : config?.name);
@@ -23,44 +121,44 @@ class _ApiSettingsScreenState extends ConsumerState<ApiSettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(isCopy
-            ? 'Copy API Configuration'
+        title: Text(l10n.get(isCopy
+            ? 'copy_api_config'
             : config == null
-                ? 'Add API Configuration'
-                : 'Edit API Configuration'),
+                ? 'add_api_config'
+                : 'edit_api_config')),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
             TextField(
               controller: nameController,
-              decoration: const InputDecoration(
-                labelText: 'Name',
-                hintText: 'e.g., OpenAI API',
+              decoration: InputDecoration(
+                labelText: l10n.get('api_name'),
+                hintText: l10n.get('api_name_hint'),
               ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: urlController,
-              decoration: const InputDecoration(
-                labelText: 'Base URL',
-                hintText: 'e.g., https://api.openai.com',
+              decoration: InputDecoration(
+                labelText: l10n.get('base_url'),
+                hintText: l10n.get('base_url_hint'),
               ),
             ),
             const SizedBox(height: 8),
             TextField(
               controller: apiKeyController,
-              decoration: const InputDecoration(
-                labelText: 'API Key',
-                hintText: 'Enter your API key',
+              decoration: InputDecoration(
+                labelText: l10n.get('api_key'),
+                hintText: l10n.get('api_key_hint'),
               ),
               obscureText: true,
             ),
             const SizedBox(height: 8),
             TextField(
               controller: modelController,
-              decoration: const InputDecoration(
-                labelText: 'Default Model',
-                hintText: 'e.g., gpt-3.5-turbo',
+              decoration: InputDecoration(
+                labelText: l10n.get('default_model'),
+                hintText: l10n.get('default_model_hint'),
               ),
             ),
           ],
@@ -152,99 +250,5 @@ class _ApiSettingsScreenState extends ConsumerState<ApiSettingsScreen> {
       await ref.read(apiConfigServiceProvider).deleteConfig(config.id);
       setState(() {});
     }
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(
-        title: const Text('API Settings'),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.add),
-            onPressed: () => _showConfigDialog(),
-          ),
-        ],
-      ),
-      body: FutureBuilder<Box<ApiConfig>>(
-        future: Hive.openBox<ApiConfig>('api_configs'),
-        builder: (context, snapshot) {
-          if (!snapshot.hasData) {
-            return const Center(child: CircularProgressIndicator());
-          }
-
-          final configs = snapshot.data!.values.toList();
-          return configs.isEmpty
-              ? Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(
-                        Icons.api_outlined,
-                        size: 64,
-                        color: Theme.of(context)
-                            .colorScheme
-                            .primary
-                            .withOpacity(0.5),
-                      ),
-                      const SizedBox(height: 16),
-                      Text(
-                        'No API configurations found',
-                        style: Theme.of(context).textTheme.titleMedium,
-                      ),
-                      const SizedBox(height: 8),
-                      Text(
-                        'Add an API configuration to get started',
-                        style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                              color: Theme.of(context)
-                                  .colorScheme
-                                  .onSurface
-                                  .withOpacity(0.6),
-                            ),
-                      ),
-                    ],
-                  ),
-                )
-              : ListView.builder(
-                  itemCount: configs.length,
-                  itemBuilder: (context, index) {
-                    final config = configs[index];
-                    return ListTile(
-                      title: Text(config.name),
-                      subtitle: Column(
-                        crossAxisAlignment: CrossAxisAlignment.start,
-                        children: [
-                          Text(config.baseUrl),
-                          Text(
-                            'Model: ${config.defaultModel}',
-                            style: Theme.of(context).textTheme.bodySmall,
-                          ),
-                        ],
-                      ),
-                      trailing: Row(
-                        mainAxisSize: MainAxisSize.min,
-                        children: [
-                          IconButton(
-                            icon: const Icon(Icons.copy),
-                            onPressed: () =>
-                                _showConfigDialog(config: config, isCopy: true),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.edit),
-                            onPressed: () => _showConfigDialog(config: config),
-                          ),
-                          IconButton(
-                            icon: const Icon(Icons.delete),
-                            onPressed: () => _showDeleteDialog(config),
-                          ),
-                        ],
-                      ),
-                      isThreeLine: true,
-                    );
-                  },
-                );
-        },
-      ),
-    );
   }
 }
