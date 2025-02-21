@@ -47,10 +47,14 @@ class FavoriteItem {
   }
 
   factory FavoriteItem.fromMessages(List<Message> messages, Chat chat) {
+    final previewContent = messages.length > 1
+        ? '${messages.length} messages: ${messages.first.content.length > 50 ? '${messages.first.content.substring(0, 50)}...' : messages.first.content}'
+        : messages.first.content;
+
     return FavoriteItem(
       id: DateTime.now().millisecondsSinceEpoch.toString(),
       title: chat.title,
-      content: messages.map((m) => m.content).join('\n\n'),
+      content: previewContent,
       timestamp: messages.last.timestamp,
       isChat: false,
       chatId: chat.id,
