@@ -6,6 +6,7 @@ import 'package:hive_flutter/hive_flutter.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:share_plus/share_plus.dart';
 import 'package:file_picker/file_picker.dart';
+import 'dart:io' show Platform;
 import '../../../core/models/chat.dart';
 import '../../../core/models/api_config.dart';
 import '../../../l10n/translations.dart';
@@ -15,9 +16,6 @@ class BackupSettingsScreen extends ConsumerWidget {
 
   Future<void> _exportData(BuildContext context) async {
     try {
-      final dir = await getTemporaryDirectory();
-      final file = File('${dir.path}/aichat_backup.json');
-
       final data = {
         'chats': (await Hive.openBox<Chat>('chats'))
             .values
@@ -29,8 +27,38 @@ class BackupSettingsScreen extends ConsumerWidget {
             .toList(),
       };
 
-      await file.writeAsString(jsonEncode(data));
-      await Share.shareXFiles([XFile(file.path)], subject: 'AIChat Backup');
+      final jsonData = jsonEncode(data);
+
+      if (Platform.isWindows) {
+        // Use FilePicker to save file on Windows
+        String? outputFile = await FilePicker.platform.saveFile(
+          dialogTitle: 'Save backup file',
+          fileName: 'aichat_backup.json',
+          type: FileType.custom,
+          allowedExtensions: ['json'],
+        );
+
+        if (outputFile != null) {
+          // Add .json extension if not present
+          if (!outputFile.toLowerCase().endsWith('.json')) {
+            outputFile += '.json';
+          }
+
+          await File(outputFile).writeAsString(jsonData);
+
+          if (context.mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(content: Text('Backup saved to: $outputFile')),
+            );
+          }
+        }
+      } else {
+        // Use Share for other platforms
+        final dir = await getTemporaryDirectory();
+        final file = File('${dir.path}/aichat_backup.json');
+        await file.writeAsString(jsonData);
+        await Share.shareXFiles([XFile(file.path)], subject: 'AIChat Backup');
+      }
     } catch (e) {
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
