@@ -32,8 +32,7 @@ END
 
 2 TEXTINCLUDE
 BEGIN
-    "#include ""winres.h""\r\n"
-    "\0"
+    "#include ""winres.h""\0"
 END
 
 3 TEXTINCLUDE
@@ -89,13 +88,13 @@ BEGIN
     BEGIN
         BLOCK "040904e4"
         BEGIN
-            VALUE "CompanyName", "com.felamande" "\0"
-            VALUE "FileDescription", "aichat" "\0"
+            VALUE "CompanyName", "com.example" "\0"
+            VALUE "FileDescription", "AIChat" "\0"
             VALUE "FileVersion", VERSION_AS_STRING "\0"
-            VALUE "InternalName", "aichat" "\0"
-            VALUE "LegalCopyright", "Copyright (C) 2025 com.felamande. All rights reserved." "\0"
+            VALUE "InternalName", "AIChat" "\0"
+            VALUE "LegalCopyright", "Copyright (C) 2024 Felamande. All rights reserved." "\0"
             VALUE "OriginalFilename", "aichat.exe" "\0"
-            VALUE "ProductName", "aichat" "\0"
+            VALUE "ProductName", "AIChat" "\0"
             VALUE "ProductVersion", VERSION_AS_STRING "\0"
         END
     END

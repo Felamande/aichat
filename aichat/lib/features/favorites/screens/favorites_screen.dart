@@ -8,6 +8,7 @@ import '../models/favorite_item.dart';
 import '../../../core/models/chat.dart';
 import '../../../core/models/message.dart';
 import '../../../l10n/translations.dart';
+import './favorite_detail_screen.dart';
 
 final favoritesProvider =
     StateNotifierProvider<FavoritesNotifier, List<FavoriteItem>>((ref) {
@@ -88,25 +89,16 @@ class FavoritesScreen extends ConsumerWidget {
                           maxLines: 2,
                           overflow: TextOverflow.ellipsis,
                         ),
-                        if (favorite.reasoningContent != null) ...[
-                          const SizedBox(height: 4),
-                          Container(
-                            padding: const EdgeInsets.all(8),
-                            decoration: BoxDecoration(
-                              color: theme.colorScheme.surfaceVariant
-                                  .withOpacity(0.5),
-                              borderRadius: BorderRadius.circular(8),
-                            ),
-                            child: Text(
-                              favorite.reasoningContent!,
-                              maxLines: 2,
-                              overflow: TextOverflow.ellipsis,
-                              style: theme.textTheme.bodySmall?.copyWith(
-                                color: theme.colorScheme.onSurfaceVariant,
-                              ),
+                        if (favorite.reasoningContent != null)
+                          Text(
+                            favorite.reasoningContent!,
+                            maxLines: 1,
+                            overflow: TextOverflow.ellipsis,
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color: theme.colorScheme.onSurfaceVariant
+                                  .withOpacity(0.7),
                             ),
                           ),
-                        ],
                         const SizedBox(height: 4),
                         Text(
                           DateFormat.yMd().add_jm().format(favorite.timestamp),
@@ -126,48 +118,13 @@ class FavoritesScreen extends ConsumerWidget {
                     ),
                     onTap: () {
                       if (!favorite.isChat) {
-                        showDialog(
-                          context: context,
-                          builder: (context) => AlertDialog(
-                            title: Text(favorite.title),
-                            content: SingleChildScrollView(
-                              child: Column(
-                                crossAxisAlignment: CrossAxisAlignment.start,
-                                mainAxisSize: MainAxisSize.min,
-                                children: [
-                                  Text(favorite.content),
-                                  if (favorite.reasoningContent != null) ...[
-                                    const SizedBox(height: 16),
-                                    Container(
-                                      padding: const EdgeInsets.all(12),
-                                      decoration: BoxDecoration(
-                                        color: theme.colorScheme.surfaceVariant
-                                            .withOpacity(0.5),
-                                        borderRadius: BorderRadius.circular(8),
-                                      ),
-                                      child: Column(
-                                        crossAxisAlignment:
-                                            CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            'Reasoning:',
-                                            style: theme.textTheme.titleSmall,
-                                          ),
-                                          const SizedBox(height: 8),
-                                          Text(favorite.reasoningContent!),
-                                        ],
-                                      ),
-                                    ),
-                                  ],
-                                ],
-                              ),
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => FavoriteDetailScreen(
+                              favorite: favorite,
+                              l10n: l10n,
                             ),
-                            actions: [
-                              TextButton(
-                                onPressed: () => Navigator.pop(context),
-                                child: Text(l10n.get('close')),
-                              ),
-                            ],
                           ),
                         );
                       } else if (favorite.chatId != null) {

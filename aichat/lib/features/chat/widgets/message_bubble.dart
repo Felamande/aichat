@@ -113,6 +113,7 @@ class MessageBubble extends StatelessWidget {
                     ),
                 if (message.reasoningContent != null) ...[
                   Container(
+                    width: MediaQuery.of(context).size.width * 0.7,
                     padding: const EdgeInsets.all(8),
                     decoration: BoxDecoration(
                       color: isUser
@@ -131,12 +132,15 @@ class MessageBubble extends StatelessWidget {
                   ),
                   const SizedBox(height: 8),
                 ],
-                GptMarkdown(
-                  message.content,
-                  style: theme.textTheme.bodyLarge?.copyWith(
-                    color: isUser
-                        ? theme.colorScheme.onPrimary
-                        : theme.colorScheme.onSurfaceVariant,
+                Container(
+                  width: MediaQuery.of(context).size.width * 0.7,
+                  child: GptMarkdown(
+                    message.content,
+                    style: theme.textTheme.bodyLarge?.copyWith(
+                      color: isUser
+                          ? theme.colorScheme.onPrimary
+                          : theme.colorScheme.onSurfaceVariant,
+                    ),
                   ),
                 ),
                 const SizedBox(height: 4),
