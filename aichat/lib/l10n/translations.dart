@@ -21,6 +21,10 @@ class AppLocalizations {
     return _localizedValues[locale.languageCode]?[key] ?? key;
   }
 
+  String getlang(String local , String key) {
+    return _localizedValues[local]?[key] ?? key;
+  }
+
   static final Map<String, Map<String, String>> _localizedValues = {
     'en': {
       'app_title': 'AIChat',

@@ -131,7 +131,7 @@ class SettingsScreen extends ConsumerWidget {
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       RadioListTile<Locale>(
-                        title: Text(l10n.get('english')),
+                        title: Text(l10n.getlang('en', 'english')),
                         value: const Locale('en'),
                         groupValue: language,
                         onChanged: (value) {
@@ -142,7 +142,7 @@ class SettingsScreen extends ConsumerWidget {
                         },
                       ),
                       RadioListTile<Locale>(
-                        title: Text(l10n.get('chinese')),
+                        title: Text(l10n.getlang('zh', 'chinese')),
                         value: const Locale('zh'),
                         groupValue: language,
                         onChanged: (value) {
