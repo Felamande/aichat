@@ -1,4 +1,5 @@
 import 'dart:io';
+import 'dart:async';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../../core/models/chat.dart';
@@ -24,6 +25,8 @@ class ChatController extends StateNotifier<AsyncValue<Chat>> {
   final String chatId;
   final ChatService _chatService;
   final Ref _ref;
+  StreamSubscription? _messageSubscription;
+  bool _isSending = false;
 
   ChatController(this.chatId, this._chatService, this._ref)
       : super(const AsyncValue.loading()) {
@@ -55,7 +58,8 @@ class ChatController extends StateNotifier<AsyncValue<Chat>> {
   }
 
   Future<void> sendMessage(String content) async {
-    if (state.isLoading) return;
+    if (state.isLoading || _isSending) return;
+    _isSending = true;
 
     final previousState = state.value;
     if (previousState == null) return;
@@ -74,9 +78,13 @@ class ChatController extends StateNotifier<AsyncValue<Chat>> {
     // Save to Hive
     await _saveChat(state.value!);
 
-    // Get API config
+    // Get API config using the chat's apiConfigId
     final apiConfigBox = await Hive.openBox<ApiConfig>('api_configs');
-    final apiConfig = apiConfigBox.values.first;
+    final apiConfig = apiConfigBox.values.firstWhere(
+      (config) => config.id == previousState.apiConfigId,
+      orElse: () =>
+          apiConfigBox.values.first, // Fallback to first config if not found
+    );
 
     try {
       // Create a placeholder assistant message
@@ -103,35 +111,58 @@ class ChatController extends StateNotifier<AsyncValue<Chat>> {
         apiConfig: apiConfig,
       );
 
-      await for (final update in streamController) {
-        if (update.isComplete) {
-          // Final update with complete message
-          final updatedMessages = [...state.value!.messages];
-          updatedMessages[updatedMessages.length - 1] = update.message.copyWith(
+      _messageSubscription = streamController.listen(
+        (update) {
+          if (update.isComplete) {
+            final updatedMessages = [...state.value!.messages];
+            updatedMessages[updatedMessages.length - 1] =
+                update.message.copyWith(
+              apiConfigName: apiConfig.name,
+            );
+
+            state = AsyncValue.data(state.value!.copyWith(
+              messages: updatedMessages,
+              updatedAt: DateTime.now(),
+            ));
+
+            _saveChat(state.value!);
+            _isSending = false;
+          } else {
+            final updatedMessages = [...state.value!.messages];
+            updatedMessages[updatedMessages.length - 1] =
+                update.message.copyWith(
+              apiConfigName: apiConfig.name,
+            );
+
+            state = AsyncValue.data(state.value!.copyWith(
+              messages: updatedMessages,
+              updatedAt: DateTime.now(),
+            ));
+          }
+        },
+        onError: (error) {
+          _isSending = false;
+          final errorMessage = Message(
+            content: 'Failed to send message: ${error.toString()}',
+            isUser: false,
+            isError: true,
             apiConfigName: apiConfig.name,
           );
 
-          state = AsyncValue.data(state.value!.copyWith(
-            messages: updatedMessages,
+          state = AsyncValue.data(previousState.copyWith(
+            messages: [...previousState.messages, userMessage, errorMessage],
             updatedAt: DateTime.now(),
           ));
 
-          // Save to Hive only on completion
-          await _saveChat(state.value!);
-        } else {
-          // Intermediate update
-          final updatedMessages = [...state.value!.messages];
-          updatedMessages[updatedMessages.length - 1] = update.message.copyWith(
-            apiConfigName: apiConfig.name,
-          );
-
-          state = AsyncValue.data(state.value!.copyWith(
-            messages: updatedMessages,
-            updatedAt: DateTime.now(),
-          ));
-        }
-      }
+          _saveChat(state.value!);
+        },
+        onDone: () {
+          _isSending = false;
+          _messageSubscription = null;
+        },
+      );
     } catch (e, stack) {
+      _isSending = false;
       final errorMessage = Message(
         content: 'Failed to send message: ${e.toString()}',
         isUser: false,
@@ -144,8 +175,7 @@ class ChatController extends StateNotifier<AsyncValue<Chat>> {
         updatedAt: DateTime.now(),
       ));
 
-      // Save to Hive
-      await _saveChat(state.value!);
+      _saveChat(state.value!);
     }
   }
 
@@ -284,4 +314,18 @@ class ChatController extends StateNotifier<AsyncValue<Chat>> {
       state = AsyncValue.error(e, stack);
     }
   }
+
+  void cancelStream() {
+    _messageSubscription?.cancel();
+    _messageSubscription = null;
+    _isSending = false;
+  }
+
+  @override
+  void dispose() {
+    cancelStream();
+    super.dispose();
+  }
+
+  bool get isSending => _isSending;
 }

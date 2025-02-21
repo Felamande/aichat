@@ -237,7 +237,7 @@ class ChatService {
         ),
       ).listen(
         (chunk) {
-          print("get chunk: $chunk");
+          // print("get chunk: $chunk");
           final lines = chunk.split('\n');
           for (final line in lines) {
             if (line.startsWith('data: ')) {

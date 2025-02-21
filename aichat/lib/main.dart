@@ -8,6 +8,8 @@ import 'core/models/api_config.dart';
 import 'features/navigation/app_scaffold.dart';
 import 'features/settings/screens/settings_screen.dart';
 import 'shared/themes/app_theme.dart';
+import 'l10n/app_localizations_delegate.dart';
+import 'l10n/translations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -35,23 +37,20 @@ class AIChatApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeProvider);
-    final language = ref.watch(languageProvider);
 
     return MaterialApp(
       title: 'AIChat',
       theme: AppTheme.lightTheme,
       darkTheme: AppTheme.darkTheme,
       themeMode: themeMode,
-      locale: language,
+      locale: const Locale('zh'), // Set Chinese as default
       localizationsDelegates: const [
+        AppLocalizationsDelegate(),
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
-      supportedLocales: const [
-        Locale('en'), // English
-        Locale('zh'), // Chinese
-      ],
+      supportedLocales: AppLocalizations.supportedLocales,
       home: const AppScaffold(),
     );
   }

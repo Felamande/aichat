@@ -10,6 +10,7 @@ import '../../../core/models/chat.dart';
 import '../../../core/models/api_config.dart';
 import '../../../core/services/api_config_service.dart';
 import '../../../core/services/chat_service.dart';
+import '../../../l10n/translations.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final String chatId;
@@ -25,6 +26,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _isComposing = false;
   bool _shouldAutoScroll = true;
+  bool _isSending = false;
   // List<String> _availableModels = [];
 
   @override
@@ -91,20 +93,22 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
       ),
     );
 
-    if (selectedConfig != null && selectedConfig != currentConfig) {
+    if (selectedConfig != null && selectedConfig.id != chat.apiConfigId) {
       // Update chat with new API config and model
-      final newModelId = selectedConfig.defaultModel;
-
-      // Update the chat with new API config
       final updatedChat = chat.copyWith(
         apiConfigId: selectedConfig.id,
-        modelId: newModelId,
+        modelId: selectedConfig.defaultModel,
       );
 
       // Update in controller
       await ref
           .read(chatControllerProvider(widget.chatId).notifier)
           .updateChat(updatedChat);
+
+      // Set as default config
+      await ref
+          .read(apiConfigServiceProvider)
+          .setDefaultConfig(selectedConfig.id);
 
       if (mounted) {
         setState(() {}); // Trigger rebuild
@@ -124,18 +128,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (_scrollController.hasClients) {
       final maxScroll = _scrollController.position.maxScrollExtent;
       final currentScroll = _scrollController.offset;
-      // Consider "at bottom" if within 50 pixels of the bottom
-      _shouldAutoScroll = (maxScroll - currentScroll) <= 50;
+      // Only auto-scroll if we're very close to the bottom
+      _shouldAutoScroll = (maxScroll - currentScroll) <= 20;
     }
   }
 
   void _scrollToBottom() {
     if (_scrollController.hasClients && _shouldAutoScroll) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        _scrollController.animateTo(
+          _scrollController.position.maxScrollExtent,
+          duration: const Duration(milliseconds: 300),
+          curve: Curves.easeOut,
+        );
+      });
     }
   }
 
@@ -145,6 +151,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _messageController.clear();
     setState(() {
       _isComposing = false;
+      _shouldAutoScroll = true; // Force scroll to bottom for new messages
     });
 
     ref.read(chatControllerProvider(widget.chatId).notifier).sendMessage(text);
@@ -232,8 +239,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   }
 
   Widget _buildMessageList(Chat chat) {
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-
     return ListView.builder(
       controller: _scrollController,
       padding: const EdgeInsets.all(8.0),
@@ -275,6 +280,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     final chatState = ref.watch(chatControllerProvider(widget.chatId));
     final favorites = ref.watch(favoritesControllerProvider);
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -397,12 +403,12 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       children: [
                         IconButton(
                           icon: const Icon(Icons.api),
-                          tooltip: 'Select API',
+                          tooltip: l10n.get('select_api'),
                           onPressed: () => _showApiSelector(chat),
                         ),
                         IconButton(
                           icon: const Icon(Icons.splitscreen),
-                          tooltip: 'Clear Context',
+                          tooltip: l10n.get('clear_context'),
                           onPressed: () {
                             ref
                                 .read(chatControllerProvider(widget.chatId)
@@ -412,7 +418,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         ),
                         IconButton(
                           icon: const Icon(Icons.delete_sweep),
-                          tooltip: 'Clear Messages',
+                          tooltip: l10n.get('clear_messages'),
                           onPressed: () {
                             ref
                                 .read(chatControllerProvider(widget.chatId)
@@ -420,11 +426,20 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                                 .clearMessages();
                           },
                         ),
-                        IconButton(
-                          icon: const Icon(Icons.attach_file),
-                          tooltip: 'Add Attachment',
-                          onPressed: _handleAttachment,
-                        ),
+                        if (ref
+                            .watch(
+                                chatControllerProvider(widget.chatId).notifier)
+                            .isSending)
+                          IconButton(
+                            icon: const Icon(Icons.stop),
+                            tooltip: l10n.get('stop_generating'),
+                            onPressed: () {
+                              ref
+                                  .read(chatControllerProvider(widget.chatId)
+                                      .notifier)
+                                  .cancelStream();
+                            },
+                          ),
                         const Spacer(),
                         Text(
                           chat.modelId,
@@ -449,7 +464,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                           },
                           onSubmitted: _isComposing ? _handleSubmitted : null,
                           decoration: InputDecoration(
-                            hintText: 'Type a message',
+                            hintText: l10n.get('type_message'),
                             border: OutlineInputBorder(
                               borderRadius: BorderRadius.circular(20),
                               borderSide: BorderSide.none,
