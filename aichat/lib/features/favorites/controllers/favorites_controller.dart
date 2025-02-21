@@ -111,16 +111,4 @@ class FavoritesController extends StateNotifier<List<FavoriteItem>> {
           state.where((item) => !(item.id == chatId && item.isChat)).toList();
     }
   }
-
-  Future<void> forceReload() async {
-    try {
-      final box = await Hive.openBox<Map>('favorites');
-      final favorites = box.values
-          .map((item) => FavoriteItem.fromJson(Map<String, dynamic>.from(item)))
-          .toList();
-      state = favorites;
-    } catch (e) {
-      state = [];
-    }
-  }
 }

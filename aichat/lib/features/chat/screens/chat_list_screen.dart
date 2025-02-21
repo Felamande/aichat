@@ -52,11 +52,6 @@ class ChatListNotifier extends StateNotifier<List<Chat>> {
     );
     await addChat(newChat);
   }
-
-  Future<void> forceReload() async {
-    final box = await Hive.openBox<Chat>('chats');
-    state = box.values.toList();
-  }
 }
 
 class _NewChatDialog extends StatefulWidget {
