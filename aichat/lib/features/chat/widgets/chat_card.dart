@@ -43,8 +43,10 @@ class ChatCard extends StatelessWidget {
         motion: const ScrollMotion(),
         children: [
           SlidableAction(
-            onPressed: (_) => onDelete(),
-            backgroundColor: theme.colorScheme.error,
+            onPressed: isFavorite ? null : (_) => onDelete(),
+            backgroundColor: isFavorite
+                ? theme.colorScheme.error.withOpacity(0.3)
+                : theme.colorScheme.error,
             foregroundColor: theme.colorScheme.onError,
             icon: Icons.delete,
             label: l10n.get('delete'),

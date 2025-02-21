@@ -173,16 +173,27 @@ class ChatListScreen extends ConsumerWidget {
     final l10n = AppLocalizations.of(context);
     final theme = Theme.of(context);
 
-    // Sort chats: favorites first, then by updatedAt
+    // Sort chats: favorites first, then by last message time
     final sortedChats = [...chats];
     sortedChats.sort((a, b) {
       final aIsFavorite =
           favorites.any((item) => item.id == a.id && item.isChat);
       final bIsFavorite =
           favorites.any((item) => item.id == b.id && item.isChat);
-      if (aIsFavorite && !bIsFavorite) return -1;
-      if (!aIsFavorite && bIsFavorite) return 1;
-      return b.updatedAt.compareTo(a.updatedAt);
+
+      // If both are favorites or both are not favorites, sort by last message time
+      if (aIsFavorite == bIsFavorite) {
+        final aLastMessageTime =
+            a.messages.isEmpty ? a.updatedAt : a.messages.last.timestamp;
+        final bLastMessageTime =
+            b.messages.isEmpty ? b.updatedAt : b.messages.last.timestamp;
+        return bLastMessageTime.compareTo(aLastMessageTime);
+      }
+
+      // Keep favorites at the top
+      if (aIsFavorite) return -1;
+      if (bIsFavorite) return 1;
+      return 0;
     });
 
     return Scaffold(
@@ -301,6 +312,68 @@ class ChatListScreen extends ConsumerWidget {
                                   ),
                                 );
                               },
+                            ),
+                            ListTile(
+                              leading: Icon(
+                                Icons.delete,
+                                color: isFavorite
+                                    ? theme.colorScheme.error.withOpacity(0.5)
+                                    : theme.colorScheme.error,
+                              ),
+                              title: Text(
+                                l10n.get('delete_chat'),
+                                style: TextStyle(
+                                  color: isFavorite
+                                      ? theme.colorScheme.error.withOpacity(0.5)
+                                      : theme.colorScheme.error,
+                                ),
+                              ),
+                              enabled: !isFavorite,
+                              onTap: isFavorite
+                                  ? null
+                                  : () async {
+                                      Navigator.pop(
+                                          context); // Close bottom sheet first
+                                      final shouldDelete =
+                                          await showDialog<bool>(
+                                        context: context,
+                                        builder: (context) => AlertDialog(
+                                          title: Text(l10n.get('delete_chat')),
+                                          content:
+                                              Text(l10n.get('delete_confirm')),
+                                          actions: [
+                                            TextButton(
+                                              onPressed: () =>
+                                                  Navigator.pop(context, false),
+                                              child: Text(l10n.get('cancel')),
+                                            ),
+                                            TextButton(
+                                              style: TextButton.styleFrom(
+                                                foregroundColor:
+                                                    theme.colorScheme.error,
+                                              ),
+                                              onPressed: () =>
+                                                  Navigator.pop(context, true),
+                                              child: Text(l10n.get('delete')),
+                                            ),
+                                          ],
+                                        ),
+                                      );
+
+                                      if (shouldDelete == true &&
+                                          context.mounted) {
+                                        ref
+                                            .read(chatListProvider.notifier)
+                                            .removeChat(chat.id);
+                                        ScaffoldMessenger.of(context)
+                                            .showSnackBar(
+                                          SnackBar(
+                                            content:
+                                                Text(l10n.get('chat_deleted')),
+                                          ),
+                                        );
+                                      }
+                                    },
                             ),
                           ],
                         ),

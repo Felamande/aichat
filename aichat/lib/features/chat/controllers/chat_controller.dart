@@ -78,7 +78,7 @@ class ChatController extends StateNotifier<AsyncValue<Chat>> {
       updatedAt: DateTime.now(),
     ));
 
-    // Save to Hive
+    // Save to Hive and update chat list
     await _saveChat(state.value!);
 
     // Get API config using the chat's apiConfigId
@@ -185,7 +185,7 @@ class ChatController extends StateNotifier<AsyncValue<Chat>> {
   Future<void> _saveChat(Chat chat) async {
     final box = await Hive.openBox<Chat>('chats');
     await box.put(chat.id, chat);
-    // Update the chat list to refresh the preview
+    // Update the chat list to refresh the sorting
     _ref.read(chatListProvider.notifier).updateChat(chat);
   }
 
