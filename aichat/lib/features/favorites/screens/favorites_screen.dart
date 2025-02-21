@@ -34,7 +34,10 @@ class FavoritesScreen extends ConsumerWidget {
 
   @override
   Widget build(BuildContext context, WidgetRef ref) {
-    final favorites = ref.watch(favoritesControllerProvider);
+    final favorites = ref
+        .watch(favoritesControllerProvider)
+        .where((item) => !item.isChat) // Only show message favorites
+        .toList();
     final theme = Theme.of(context);
     final l10n = AppLocalizations.of(context);
 
@@ -77,7 +80,7 @@ class FavoritesScreen extends ConsumerWidget {
                       const EdgeInsets.symmetric(horizontal: 8, vertical: 4),
                   child: ListTile(
                     leading: Icon(
-                      favorite.isChat ? Icons.chat : Icons.message,
+                      Icons.message,
                       color: theme.colorScheme.primary,
                     ),
                     title: Text(favorite.title),
@@ -117,25 +120,15 @@ class FavoritesScreen extends ConsumerWidget {
                       },
                     ),
                     onTap: () {
-                      if (!favorite.isChat) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => FavoriteDetailScreen(
-                              favorite: favorite,
-                              l10n: l10n,
-                            ),
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => FavoriteDetailScreen(
+                            favorite: favorite,
+                            l10n: l10n,
                           ),
-                        );
-                      } else if (favorite.chatId != null) {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) =>
-                                ChatScreen(chatId: favorite.chatId!),
-                          ),
-                        );
-                      }
+                        ),
+                      );
                     },
                   ),
                 );

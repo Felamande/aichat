@@ -4,6 +4,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../widgets/chat_card.dart';
 import '../../../core/models/chat.dart';
+import '../../../core/models/api_config.dart';
 import 'chat_screen.dart';
 import '../../search/screens/search_screen.dart';
 import '../../settings/screens/settings_screen.dart';
@@ -51,6 +52,17 @@ class ChatListNotifier extends StateNotifier<List<Chat>> {
       messages: chat.messages,
     );
     await addChat(newChat);
+  }
+
+  Future<void> createChat() async {
+    final apiConfig = await Hive.openBox<ApiConfig>('api_configs');
+    final defaultConfig = apiConfig.values.firstOrNull;
+
+    final chat = Chat(
+      title: 'New Chat',
+      modelId: defaultConfig?.defaultModel ?? 'gpt-3.5-turbo',
+    );
+    await addChat(chat);
   }
 }
 
@@ -142,109 +154,14 @@ class ChatListScreen extends ConsumerWidget {
       barrierDismissible: false,
       builder: (BuildContext context) => _NewChatDialog(
         ref: ref,
-        onChatCreated: (chatId) => _navigateToChat(context, chatId),
-      ),
-    );
-  }
-
-  Future<void> _showDeleteConfirmation(
-    BuildContext context,
-    WidgetRef ref,
-    Chat chat,
-  ) async {
-    final l10n = AppLocalizations.of(context);
-    final result = await showDialog<bool>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(l10n.get('delete_chat')),
-        content: Text(
-          'Are you sure you want to delete "${chat.title}"?\nThis action cannot be undone.',
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context, false),
-            child: Text(l10n.get('cancel')),
-          ),
-          TextButton(
-            style: TextButton.styleFrom(
-              foregroundColor: Theme.of(context).colorScheme.error,
+        onChatCreated: (chatId) {
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (context) => ChatScreen(chatId: chatId),
             ),
-            onPressed: () => Navigator.pop(context, true),
-            child: Text(l10n.get('delete')),
-          ),
-        ],
-      ),
-    );
-
-    if (result == true) {
-      await ref.read(chatListProvider.notifier).removeChat(chat.id);
-      await ref
-          .read(favoritesControllerProvider.notifier)
-          .removeAllForChat(chat.id);
-      if (context.mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          SnackBar(
-            content: Text(l10n.get('chat_deleted')),
-            duration: const Duration(seconds: 2),
-          ),
-        );
-      }
-    }
-  }
-
-  void _showChatOptions(BuildContext context, WidgetRef ref, Chat chat) {
-    final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context);
-
-    showModalBottomSheet(
-      context: context,
-      builder: (context) => SafeArea(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            ListTile(
-              leading: const Icon(Icons.copy),
-              title: Text(l10n.get('duplicate_chat')),
-              onTap: () async {
-                await ref.read(chatListProvider.notifier).duplicateChat(chat);
-                Navigator.pop(context);
-                if (context.mounted) {
-                  ScaffoldMessenger.of(context).showSnackBar(
-                    SnackBar(
-                      content: Text(l10n.get('chat_duplicated')),
-                      duration: Duration(seconds: 2),
-                    ),
-                  );
-                }
-              },
-            ),
-            ListTile(
-              leading: Icon(
-                Icons.delete,
-                color: theme.colorScheme.error,
-              ),
-              title: Text(
-                l10n.get('delete_chat'),
-                style: TextStyle(
-                  color: theme.colorScheme.error,
-                ),
-              ),
-              onTap: () {
-                Navigator.pop(context);
-                _showDeleteConfirmation(context, ref, chat);
-              },
-            ),
-          ],
-        ),
-      ),
-    );
-  }
-
-  void _navigateToChat(BuildContext context, String chatId) {
-    Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (context) => ChatScreen(chatId: chatId),
+          );
+        },
       ),
     );
   }
@@ -252,35 +169,25 @@ class ChatListScreen extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final chats = ref.watch(chatListProvider);
+    final favorites = ref.watch(favoritesControllerProvider);
     final l10n = AppLocalizations.of(context);
+    final theme = Theme.of(context);
+
+    // Sort chats: favorites first, then by updatedAt
+    final sortedChats = [...chats];
+    sortedChats.sort((a, b) {
+      final aIsFavorite =
+          favorites.any((item) => item.id == a.id && item.isChat);
+      final bIsFavorite =
+          favorites.any((item) => item.id == b.id && item.isChat);
+      if (aIsFavorite && !bIsFavorite) return -1;
+      if (!aIsFavorite && bIsFavorite) return 1;
+      return b.updatedAt.compareTo(a.updatedAt);
+    });
 
     return Scaffold(
       appBar: AppBar(
         title: Text(l10n.get('chats')),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.search),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const SearchScreen(),
-                ),
-              );
-            },
-          ),
-          IconButton(
-            icon: const Icon(Icons.settings),
-            onPressed: () {
-              Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (context) => const SettingsScreen(),
-                ),
-              );
-            },
-          ),
-        ],
       ),
       body: chats.isEmpty
           ? Center(
@@ -290,37 +197,118 @@ class ChatListScreen extends ConsumerWidget {
                   Icon(
                     Icons.chat_bubble_outline,
                     size: 64,
-                    color:
-                        Theme.of(context).colorScheme.primary.withOpacity(0.5),
+                    color: theme.colorScheme.primary.withOpacity(0.5),
                   ),
                   const SizedBox(height: 16),
                   Text(
                     l10n.get('no_chats'),
-                    style: Theme.of(context).textTheme.titleLarge,
+                    style: theme.textTheme.titleLarge,
                   ),
                   const SizedBox(height: 8),
                   Text(
                     l10n.get('start_new_chat'),
-                    style: Theme.of(context).textTheme.bodyMedium?.copyWith(
-                          color: Theme.of(context)
-                              .colorScheme
-                              .onSurface
-                              .withOpacity(0.6),
-                        ),
+                    style: theme.textTheme.bodyMedium?.copyWith(
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    ),
                   ),
                 ],
               ),
             )
           : ListView.builder(
-              itemCount: chats.length,
+              itemCount: sortedChats.length,
               itemBuilder: (context, index) {
-                final chat = chats[index];
+                final chat = sortedChats[index];
+                final isFavorite =
+                    favorites.any((item) => item.id == chat.id && item.isChat);
+
                 return ChatCard(
                   chat: chat,
-                  onTap: () => _navigateToChat(context, chat.id),
-                  onLongPress: () => _showChatOptions(context, ref, chat),
-                  onDelete: () => _showDeleteConfirmation(context, ref, chat),
-                  l10n: AppLocalizations.of(context),
+                  onTap: () {
+                    Navigator.push(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => ChatScreen(chatId: chat.id),
+                      ),
+                    );
+                  },
+                  onDelete: () async {
+                    final shouldDelete = await showDialog<bool>(
+                      context: context,
+                      builder: (context) => AlertDialog(
+                        title: Text(l10n.get('delete_chat')),
+                        content: Text(l10n.get('delete_confirm')),
+                        actions: [
+                          TextButton(
+                            onPressed: () => Navigator.pop(context, false),
+                            child: Text(l10n.get('cancel')),
+                          ),
+                          TextButton(
+                            style: TextButton.styleFrom(
+                              foregroundColor: theme.colorScheme.error,
+                            ),
+                            onPressed: () => Navigator.pop(context, true),
+                            child: Text(l10n.get('delete')),
+                          ),
+                        ],
+                      ),
+                    );
+
+                    if (shouldDelete == true) {
+                      ref.read(chatListProvider.notifier).removeChat(chat.id);
+                      if (context.mounted) {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(
+                            content: Text(l10n.get('chat_deleted')),
+                          ),
+                        );
+                      }
+                    }
+                  },
+                  onLongPress: () {
+                    showModalBottomSheet(
+                      context: context,
+                      builder: (context) => SafeArea(
+                        child: Column(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            ListTile(
+                              leading: Icon(
+                                isFavorite ? Icons.star : Icons.star_outline,
+                              ),
+                              title: Text(
+                                isFavorite
+                                    ? l10n.get('remove_from_favorites')
+                                    : l10n.get('add_to_favorites'),
+                              ),
+                              onTap: () {
+                                ref
+                                    .read(favoritesControllerProvider.notifier)
+                                    .toggleChatFavorite(chat);
+                                Navigator.pop(context);
+                              },
+                            ),
+                            ListTile(
+                              leading: const Icon(Icons.copy),
+                              title: Text(l10n.get('duplicate_chat')),
+                              onTap: () {
+                                ref
+                                    .read(chatListProvider.notifier)
+                                    .duplicateChat(chat);
+                                Navigator.pop(context);
+                                ScaffoldMessenger.of(context).showSnackBar(
+                                  SnackBar(
+                                    content: Text(l10n.get('chat_duplicated')),
+                                  ),
+                                );
+                              },
+                            ),
+                          ],
+                        ),
+                      ),
+                    );
+                  },
+                  l10n: l10n,
+                  isFavorite: isFavorite,
                 );
               },
             ),

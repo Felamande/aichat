@@ -10,6 +10,7 @@ class ChatCard extends StatelessWidget {
   final VoidCallback onDelete;
   final VoidCallback onLongPress;
   final AppLocalizations l10n;
+  final bool isFavorite;
 
   const ChatCard({
     super.key,
@@ -18,6 +19,7 @@ class ChatCard extends StatelessWidget {
     required this.onDelete,
     required this.onLongPress,
     required this.l10n,
+    required this.isFavorite,
   });
 
   String get lastMessagePreview {
@@ -52,61 +54,83 @@ class ChatCard extends StatelessWidget {
       child: InkWell(
         onTap: onTap,
         onLongPress: onLongPress,
-        child: Padding(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
-          child: Row(
-            children: [
-              Container(
-                width: 48,
-                height: 48,
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.primaryContainer,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: Center(
-                  child: Icon(
-                    Icons.chat,
-                    color: theme.colorScheme.onPrimaryContainer,
+        child: Container(
+          color: isFavorite
+              ? theme.colorScheme.primaryContainer.withOpacity(0.1)
+              : null,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
+            child: Row(
+              children: [
+                Container(
+                  width: 48,
+                  height: 48,
+                  decoration: BoxDecoration(
+                    color: isFavorite
+                        ? theme.colorScheme.primaryContainer
+                        : theme.colorScheme.primaryContainer.withOpacity(0.7),
+                    borderRadius: BorderRadius.circular(24),
+                  ),
+                  child: Stack(
+                    children: [
+                      Center(
+                        child: Icon(
+                          Icons.chat,
+                          color: theme.colorScheme.onPrimaryContainer,
+                        ),
+                      ),
+                      if (isFavorite)
+                        Positioned(
+                          right: 0,
+                          top: 0,
+                          child: Icon(
+                            Icons.star,
+                            size: 14,
+                            color: theme.colorScheme.primary,
+                          ),
+                        ),
+                    ],
                   ),
                 ),
-              ),
-              const SizedBox(width: 16),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                      children: [
-                        Expanded(
-                          child: Text(
-                            chat.title,
-                            style: theme.textTheme.titleMedium,
-                            maxLines: 1,
-                            overflow: TextOverflow.ellipsis,
+                const SizedBox(width: 16),
+                Expanded(
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Row(
+                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                        children: [
+                          Expanded(
+                            child: Text(
+                              chat.title,
+                              style: theme.textTheme.titleMedium,
+                              maxLines: 1,
+                              overflow: TextOverflow.ellipsis,
+                            ),
                           ),
-                        ),
-                        Text(
-                          DateFormat.yMd().format(chat.updatedAt),
-                          style: theme.textTheme.bodySmall?.copyWith(
-                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          Text(
+                            DateFormat.yMd().format(chat.updatedAt),
+                            style: theme.textTheme.bodySmall?.copyWith(
+                              color:
+                                  theme.colorScheme.onSurface.withOpacity(0.6),
+                            ),
                           ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      lastMessagePreview,
-                      style: theme.textTheme.bodyMedium?.copyWith(
-                        color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        ],
                       ),
-                      maxLines: 2,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                  ],
+                      const SizedBox(height: 4),
+                      Text(
+                        lastMessagePreview,
+                        style: theme.textTheme.bodyMedium?.copyWith(
+                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                        ),
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),
