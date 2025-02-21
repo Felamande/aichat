@@ -562,7 +562,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         ),
                       ),
                       IconButton(
-                        icon: const Icon(Icons.expand_more),
+                        icon: const Icon(Icons.fullscreen_rounded),
                         tooltip: l10n.get('expand_editor'),
                         onPressed: () {
                           Navigator.push(
