@@ -10,6 +10,7 @@ import '../../../core/models/api_config.dart';
 import '../../../core/services/api_config_service.dart';
 import '../../../core/services/chat_service.dart';
 import '../../../l10n/translations.dart';
+import './expanded_editor_screen.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final String chatId;
@@ -464,6 +465,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       Expanded(
                         child: TextField(
                           controller: _messageController,
+                          maxLines: 5,
+                          minLines: 1,
                           onChanged: (text) {
                             setState(() {
                               _isComposing = text.isNotEmpty;
@@ -482,9 +485,28 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                               vertical: 8,
                             ),
                           ),
-                          maxLines: null,
-                          textInputAction: TextInputAction.send,
+                          textInputAction: TextInputAction.newline,
                         ),
+                      ),
+                      IconButton(
+                        icon: const Icon(Icons.expand_more),
+                        tooltip: l10n.get('expand_editor'),
+                        onPressed: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => ExpandedEditorScreen(
+                                initialText: _messageController.text,
+                                onTextChanged: (text) {
+                                  setState(() {
+                                    _messageController.text = text;
+                                    _isComposing = text.isNotEmpty;
+                                  });
+                                },
+                              ),
+                            ),
+                          );
+                        },
                       ),
                       IconButton(
                         icon: const Icon(Icons.send),

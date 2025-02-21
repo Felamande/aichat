@@ -126,6 +126,8 @@ class AppLocalizations {
       'dark': 'Dark',
       'english': 'English',
       'chinese': 'Chinese',
+      'expanded_editor': 'Expanded Editor',
+      'expand_editor': 'Expand Editor',
     },
     'zh': {
       'app_title': 'AI聊天',
@@ -229,6 +231,8 @@ class AppLocalizations {
       'dark': '暗色',
       'english': '英语',
       'chinese': '中文',
+      'expanded_editor': '扩展编辑器',
+      'expand_editor': '展开编辑器',
     },
   };
 }
