@@ -1,27 +1,22 @@
 import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
-import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:hive_flutter/hive_flutter.dart';
-import 'core/models/message.dart';
+import 'package:flutter_localizations/flutter_localizations.dart';
 import 'core/models/chat.dart';
 import 'core/models/api_config.dart';
+import 'core/models/message.dart';
 import 'features/navigation/app_scaffold.dart';
 import 'features/settings/screens/settings_screen.dart';
-import 'shared/themes/app_theme.dart';
-import 'l10n/app_localizations_delegate.dart';
 import 'l10n/translations.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Initialize Hive for local storage
   await Hive.initFlutter();
 
   // Register Hive adapters
-  Hive.registerAdapter(MessageAdapter());
   Hive.registerAdapter(ChatAdapter());
   Hive.registerAdapter(ApiConfigAdapter());
-  Hive.registerAdapter(AttachmentAdapter());
+  Hive.registerAdapter(MessageAdapter());
 
   // Open Hive boxes
   await Hive.openBox<Chat>('chats');
@@ -37,33 +32,31 @@ class AIChatApp extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final themeMode = ref.watch(themeProvider);
-
+    final locale = ref.watch(languageProvider);
+    final l10n = AppLocalizations.of(context);
     return MaterialApp(
-      title: 'AIChat',
-      theme: AppTheme.lightTheme,
-      darkTheme: AppTheme.darkTheme,
+      title: l10n.get('app_title'),
+      theme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        useMaterial3: true,
+      ),
+      darkTheme: ThemeData(
+        colorScheme: ColorScheme.fromSeed(
+          seedColor: Colors.blue,
+          brightness: Brightness.dark,
+        ),
+        useMaterial3: true,
+      ),
       themeMode: themeMode,
-      locale: const Locale('zh'), // Set Chinese as default
+      locale: locale,
       localizationsDelegates: const [
-        AppLocalizationsDelegate(),
+        AppLocalizations.delegate,
         GlobalMaterialLocalizations.delegate,
         GlobalWidgetsLocalizations.delegate,
         GlobalCupertinoLocalizations.delegate,
       ],
       supportedLocales: AppLocalizations.supportedLocales,
       home: const AppScaffold(),
-    );
-  }
-}
-
-class HomePage extends StatelessWidget {
-  const HomePage({super.key});
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      appBar: AppBar(title: const Text('AIChat')),
-      body: const Center(child: Text('Welcome to AIChat')),
     );
   }
 }

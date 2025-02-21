@@ -68,6 +68,14 @@ class FavoritesController extends StateNotifier<List<FavoriteItem>> {
     }
   }
 
+  Future<void> updateFavorite(FavoriteItem updatedFavorite) async {
+    final box = await Hive.openBox<Map>('favorites');
+    await box.put(updatedFavorite.id, updatedFavorite.toJson());
+    state = state
+        .map((item) => item.id == updatedFavorite.id ? updatedFavorite : item)
+        .toList();
+  }
+
   Future<void> toggleChatFavorite(Chat chat) async {
     final box = await Hive.openBox<Map>('favorites');
     final existingIndex =

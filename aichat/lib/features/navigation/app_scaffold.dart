@@ -3,6 +3,7 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../chat/screens/chat_list_screen.dart';
 import '../favorites/screens/favorites_screen.dart';
 import '../profile/screens/profile_screen.dart';
+import '../../../l10n/translations.dart';
 
 final navigationIndexProvider = StateProvider<int>((ref) => 0);
 
@@ -12,6 +13,7 @@ class AppScaffold extends ConsumerWidget {
   @override
   Widget build(BuildContext context, WidgetRef ref) {
     final currentIndex = ref.watch(navigationIndexProvider);
+    final l18n = AppLocalizations.of(context);
 
     return Scaffold(
       body: IndexedStack(
@@ -27,21 +29,21 @@ class AppScaffold extends ConsumerWidget {
         onDestinationSelected: (index) {
           ref.read(navigationIndexProvider.notifier).state = index;
         },
-        destinations: const [
+        destinations: [
           NavigationDestination(
-            icon: Icon(Icons.chat_outlined),
-            selectedIcon: Icon(Icons.chat),
-            label: 'Chats',
+            icon: const Icon(Icons.chat_outlined),
+            selectedIcon: const Icon(Icons.chat),
+            label: l18n.get('chats'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.star_outline),
-            selectedIcon: Icon(Icons.star),
-            label: 'Favorites',
+            icon: const Icon(Icons.star_outline),
+            selectedIcon: const Icon(Icons.star),
+            label: l18n.get('favorites'),
           ),
           NavigationDestination(
-            icon: Icon(Icons.person_outline),
-            selectedIcon: Icon(Icons.person),
-            label: 'Profile',
+            icon: const Icon(Icons.person_outline),
+            selectedIcon: const Icon(Icons.person),
+            label: l18n.get('profile'),
           ),
         ],
       ),

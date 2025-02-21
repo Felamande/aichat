@@ -234,7 +234,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           data: (chat) => Column(
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
-              Text(chat.title),
+              GestureDetector(
+                onTap: () => _showEditTitleDialog(chat),
+                child: Row(
+                  children: [
+                    Expanded(child: Text(chat.title)),
+                    Icon(
+                      Icons.edit,
+                      size: 16,
+                      color: theme.colorScheme.onSurface.withOpacity(0.6),
+                    ),
+                  ],
+                ),
+              ),
               FutureBuilder<List<ApiConfig>>(
                 future: ref.read(apiConfigServiceProvider).getAllConfigs(),
                 builder: (context, snapshot) {
@@ -604,6 +616,46 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 : config == null
                     ? l10n.get('add')
                     : l10n.get('save')),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showEditTitleDialog(Chat chat) {
+    final titleController = TextEditingController(text: chat.title);
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.get('chat_title')),
+        content: TextField(
+          controller: titleController,
+          decoration: InputDecoration(
+            hintText: l10n.get('chat_title_hint'),
+          ),
+          autofocus: true,
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.get('cancel')),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (titleController.text.trim().isNotEmpty) {
+                final updatedChat = chat.copyWith(
+                  title: titleController.text.trim(),
+                );
+                await ref
+                    .read(chatControllerProvider(widget.chatId).notifier)
+                    .updateChat(updatedChat);
+                if (mounted) {
+                  Navigator.pop(context);
+                }
+              }
+            },
+            child: Text(l10n.get('save')),
           ),
         ],
       ),

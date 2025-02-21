@@ -23,7 +23,7 @@ class ProfileScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Profile'),
+        title: Text(l10n.get('profile')),
       ),
       body: ListView(
         children: [
@@ -31,8 +31,8 @@ class ProfileScreen extends ConsumerWidget {
           const Divider(),
           ListTile(
             leading: const Icon(Icons.api),
-            title: const Text('API Settings'),
-            subtitle: const Text('Manage API endpoints and keys'),
+            title: Text(l10n.get('api_settings')),
+            subtitle: Text(l10n.get('manage_api_endpoints_and_keys')),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               Navigator.push(
@@ -45,8 +45,8 @@ class ProfileScreen extends ConsumerWidget {
           ),
           ListTile(
             leading: const Icon(Icons.color_lens),
-            title: const Text('Theme'),
-            subtitle: const Text('Change app appearance'),
+            title: Text(l10n.get('theme')),
+            subtitle: Text(l10n.get('change_app_appearance')),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               Navigator.push(
@@ -59,8 +59,8 @@ class ProfileScreen extends ConsumerWidget {
           ),
           ListTile(
             leading: const Icon(Icons.language),
-            title: const Text('Language'),
-            subtitle: const Text('Change app language'),
+            title: Text(l10n.get('language')),
+            subtitle: Text(l10n.get('change_app_language')),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               Navigator.push(

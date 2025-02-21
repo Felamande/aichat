@@ -20,7 +20,7 @@ class _ApiSettingsScreenState extends ConsumerState<ApiSettingsScreen> {
     l10n = AppLocalizations.of(context);
     return Scaffold(
       appBar: AppBar(
-        title: const Text('API Settings'),
+        title: Text(l10n.get('api_settings')),
         actions: [
           IconButton(
             icon: const Icon(Icons.add),

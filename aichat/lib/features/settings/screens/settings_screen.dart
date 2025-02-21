@@ -2,10 +2,34 @@ import 'package:flutter/material.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../../../core/models/api_config.dart';
+import '../../../core/services/settings_service.dart';
+import '../../../l10n/translations.dart';
 import 'api_settings_screen.dart';
 
 final themeProvider = StateProvider<ThemeMode>((ref) => ThemeMode.system);
-final languageProvider = StateProvider<Locale>((ref) => const Locale('en'));
+final languageProvider = StateNotifierProvider<LanguageNotifier, Locale>((ref) {
+  return LanguageNotifier(ref);
+});
+
+class LanguageNotifier extends StateNotifier<Locale> {
+  final Ref ref;
+
+  LanguageNotifier(this.ref) : super(const Locale('en')) {
+    _loadSavedLanguage();
+  }
+
+  Future<void> _loadSavedLanguage() async {
+    final savedLanguage = await ref.read(settingsServiceProvider).getLanguage();
+    if (savedLanguage != null) {
+      state = Locale(savedLanguage);
+    }
+  }
+
+  Future<void> setLanguage(Locale locale) async {
+    await ref.read(settingsServiceProvider).setLanguage(locale.languageCode);
+    state = locale;
+  }
+}
 
 class SettingsScreen extends ConsumerWidget {
   const SettingsScreen({super.key});
@@ -15,17 +39,18 @@ class SettingsScreen extends ConsumerWidget {
     final theme = Theme.of(context);
     final themeMode = ref.watch(themeProvider);
     final language = ref.watch(languageProvider);
+    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Settings'),
+        title: Text(l10n.get('settings')),
       ),
       body: ListView(
         children: [
           ListTile(
             leading: const Icon(Icons.api),
-            title: const Text('API Settings'),
-            subtitle: const Text('Manage API endpoints and keys'),
+            title: Text(l10n.get('api_settings')),
+            subtitle: Text(l10n.get('api_settings_desc')),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               Navigator.push(
@@ -38,25 +63,25 @@ class SettingsScreen extends ConsumerWidget {
           ),
           ListTile(
             leading: const Icon(Icons.color_lens),
-            title: const Text('Theme'),
+            title: Text(l10n.get('theme')),
             subtitle: Text(
               themeMode == ThemeMode.system
-                  ? 'System'
+                  ? l10n.get('system')
                   : themeMode == ThemeMode.light
-                      ? 'Light'
-                      : 'Dark',
+                      ? l10n.get('light')
+                      : l10n.get('dark'),
             ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: const Text('Choose Theme'),
+                  title: Text(l10n.get('choose_theme')),
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       RadioListTile<ThemeMode>(
-                        title: const Text('System'),
+                        title: Text(l10n.get('system')),
                         value: ThemeMode.system,
                         groupValue: themeMode,
                         onChanged: (value) {
@@ -65,7 +90,7 @@ class SettingsScreen extends ConsumerWidget {
                         },
                       ),
                       RadioListTile<ThemeMode>(
-                        title: const Text('Light'),
+                        title: Text(l10n.get('light')),
                         value: ThemeMode.light,
                         groupValue: themeMode,
                         onChanged: (value) {
@@ -74,7 +99,7 @@ class SettingsScreen extends ConsumerWidget {
                         },
                       ),
                       RadioListTile<ThemeMode>(
-                        title: const Text('Dark'),
+                        title: Text(l10n.get('dark')),
                         value: ThemeMode.dark,
                         groupValue: themeMode,
                         onChanged: (value) {
@@ -90,32 +115,40 @@ class SettingsScreen extends ConsumerWidget {
           ),
           ListTile(
             leading: const Icon(Icons.language),
-            title: const Text('Language'),
-            subtitle: Text(language.languageCode == 'en' ? 'English' : '中文'),
+            title: Text(l10n.get('language')),
+            subtitle: Text(
+              language.languageCode == 'en'
+                  ? l10n.get('english')
+                  : l10n.get('chinese'),
+            ),
             trailing: const Icon(Icons.chevron_right),
             onTap: () {
               showDialog(
                 context: context,
                 builder: (context) => AlertDialog(
-                  title: const Text('Choose Language'),
+                  title: Text(l10n.get('choose_language')),
                   content: Column(
                     mainAxisSize: MainAxisSize.min,
                     children: [
                       RadioListTile<Locale>(
-                        title: const Text('English'),
+                        title: Text(l10n.get('english')),
                         value: const Locale('en'),
                         groupValue: language,
                         onChanged: (value) {
-                          ref.read(languageProvider.notifier).state = value!;
+                          ref
+                              .read(languageProvider.notifier)
+                              .setLanguage(value!);
                           Navigator.pop(context);
                         },
                       ),
                       RadioListTile<Locale>(
-                        title: const Text('中文'),
+                        title: Text(l10n.get('chinese')),
                         value: const Locale('zh'),
                         groupValue: language,
                         onChanged: (value) {
-                          ref.read(languageProvider.notifier).state = value!;
+                          ref
+                              .read(languageProvider.notifier)
+                              .setLanguage(value!);
                           Navigator.pop(context);
                         },
                       ),

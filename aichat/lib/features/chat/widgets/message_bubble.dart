@@ -111,7 +111,8 @@ class MessageBubble extends StatelessWidget {
                       padding: const EdgeInsets.only(bottom: 8.0),
                       child: _buildAttachment(context, attachment),
                     ),
-                if (message.reasoningContent != null) ...[
+                if (message.reasoningContent != null &&
+                    message.reasoningContent!.trim().isNotEmpty) ...[
                   Container(
                     width: MediaQuery.of(context).size.width * 0.7,
                     padding: const EdgeInsets.all(8),

@@ -254,7 +254,7 @@ class ChatListScreen extends ConsumerWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Chats'),
+        title: Text(l10n.get('chats')),
         actions: [
           IconButton(
             icon: const Icon(Icons.search),

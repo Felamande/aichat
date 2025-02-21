@@ -6,7 +6,19 @@ class AppLocalizations {
   AppLocalizations(this.locale);
 
   static AppLocalizations of(BuildContext context) {
-    return Localizations.of<AppLocalizations>(context, AppLocalizations)!;
+    return Localizations.of<AppLocalizations>(context, AppLocalizations) ??
+        AppLocalizations(const Locale('en'));
+  }
+
+  static const List<Locale> supportedLocales = [
+    Locale('zh'), // Chinese
+    Locale('en'), // English
+  ];
+
+  static const AppLocalizationsDelegate delegate = AppLocalizationsDelegate();
+
+  String get(String key) {
+    return _localizedValues[locale.languageCode]?[key] ?? key;
   }
 
   static final Map<String, Map<String, String>> _localizedValues = {
@@ -14,6 +26,7 @@ class AppLocalizations {
       'app_title': 'AIChat',
       'chats': 'Chats',
       'settings': 'Settings',
+      'profile': 'Profile',
       'api_settings': 'API Settings',
       'select_api': 'Select API',
       'clear_context': 'Clear Context',
@@ -98,11 +111,27 @@ class AppLocalizations {
       'proceed': 'Proceed',
       'no_backup_file': 'No backup file found',
       'invalid_backup_file': 'Invalid backup file format',
+      'edit_title': 'Edit Title',
+      'enter_title': 'Enter title',
+      'theme': 'Theme',
+      'language': 'Language',
+      'choose_theme': 'Choose Theme',
+      'choose_language': 'Choose Language',
+      'api_settings_desc': 'Manage API endpoints and keys',
+      'change_app_appearance': 'Change app appearance',
+      'change_app_language': 'Change app language',
+      'manage_api_endpoints_and_keys': 'Manage API endpoints and keys',
+      'system': 'System',
+      'light': 'Light',
+      'dark': 'Dark',
+      'english': 'English',
+      'chinese': 'Chinese',
     },
     'zh': {
       'app_title': 'AI聊天',
       'chats': '聊天',
       'settings': '设置',
+      'profile': '个人资料',
       'api_settings': 'API设置',
       'select_api': '选择API',
       'clear_context': '清除上下文',
@@ -185,15 +214,38 @@ class AppLocalizations {
       'proceed': '继续',
       'no_backup_file': '未找到备份文件',
       'invalid_backup_file': '备份文件格式无效',
+      'edit_title': '编辑标题',
+      'enter_title': '输入标题',
+      'theme': '主题',
+      'language': '语言',
+      'choose_theme': '选择主题',
+      'choose_language': '选择语言',
+      'api_settings_desc': '管理API端点和密钥',
+      'change_app_appearance': '更改应用外观',
+      'change_app_language': '更改应用语言',
+      'manage_api_endpoints_and_keys': '管理API端点和密钥',
+      'system': '系统',
+      'light': '亮色',
+      'dark': '暗色',
+      'english': '英语',
+      'chinese': '中文',
     },
   };
+}
 
-  String get(String key) {
-    return _localizedValues[locale.languageCode]?[key] ?? key;
+class AppLocalizationsDelegate extends LocalizationsDelegate<AppLocalizations> {
+  const AppLocalizationsDelegate();
+
+  @override
+  bool isSupported(Locale locale) {
+    return ['en', 'zh'].contains(locale.languageCode);
   }
 
-  static const List<Locale> supportedLocales = [
-    Locale('zh'), // Chinese
-    Locale('en'), // English
-  ];
+  @override
+  Future<AppLocalizations> load(Locale locale) async {
+    return AppLocalizations(locale);
+  }
+
+  @override
+  bool shouldReload(AppLocalizationsDelegate old) => false;
 }
