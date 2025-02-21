@@ -5,6 +5,8 @@ import 'package:flutter_riverpod/flutter_riverpod.dart';
 import '../controllers/chat_controller.dart';
 import '../widgets/message_bubble.dart';
 import '../../favorites/controllers/favorites_controller.dart';
+import '../../../core/models/message.dart';
+import '../../../core/models/chat.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final String chatId;
@@ -59,6 +61,64 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         ),
       );
     }
+  }
+
+  void _showMessageOptions(BuildContext context, Message message, Chat chat) {
+    final theme = Theme.of(context);
+    final isFavorite = ref.read(favoritesControllerProvider).any(
+          (item) => item.id == message.id && !item.isChat,
+        );
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.copy),
+              title: const Text('Copy Message'),
+              onTap: () {
+                _copyMessageToClipboard(message.content);
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                isFavorite ? Icons.star : Icons.star_outline,
+              ),
+              title: Text(
+                isFavorite ? 'Remove from Favorites' : 'Add to Favorites',
+              ),
+              onTap: () {
+                ref
+                    .read(favoritesControllerProvider.notifier)
+                    .toggleFavorite(chat, message);
+                Navigator.pop(context);
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.delete,
+                color: theme.colorScheme.error,
+              ),
+              title: Text(
+                'Delete Message',
+                style: TextStyle(
+                  color: theme.colorScheme.error,
+                ),
+              ),
+              onTap: () {
+                ref
+                    .read(chatControllerProvider(widget.chatId).notifier)
+                    .deleteMessage(message.id);
+                Navigator.pop(context);
+              },
+            ),
+          ],
+        ),
+      ),
+    );
   }
 
   void _handleAttachment() async {
@@ -162,63 +222,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                       itemCount: chat.messages.length,
                       itemBuilder: (context, index) {
                         final message = chat.messages[index];
-                        final isFavorite = favorites.any(
-                          (item) => item.id == message.id && !item.isChat,
-                        );
                         return MessageBubble(
                           message: message,
-                          onLongPress: () {
-                            showModalBottomSheet(
-                              context: context,
-                              builder: (context) => SafeArea(
-                                child: Column(
-                                  mainAxisSize: MainAxisSize.min,
-                                  children: [
-                                    ListTile(
-                                      leading: const Icon(Icons.copy),
-                                      title: const Text('Copy'),
-                                      onTap: () {
-                                        _copyMessageToClipboard(
-                                            message.content);
-                                        Navigator.pop(context);
-                                      },
-                                    ),
-                                    ListTile(
-                                      leading: const Icon(Icons.delete),
-                                      title: const Text('Delete'),
-                                      onTap: () {
-                                        ref
-                                            .read(chatControllerProvider(
-                                                    widget.chatId)
-                                                .notifier)
-                                            .deleteMessage(message.id);
-                                        Navigator.pop(context);
-                                      },
-                                    ),
-                                    ListTile(
-                                      leading: Icon(
-                                        isFavorite
-                                            ? Icons.star
-                                            : Icons.star_outline,
-                                      ),
-                                      title: Text(
-                                        isFavorite
-                                            ? 'Remove from Favorites'
-                                            : 'Add to Favorites',
-                                      ),
-                                      onTap: () {
-                                        ref
-                                            .read(favoritesControllerProvider
-                                                .notifier)
-                                            .toggleFavorite(chat, message);
-                                        Navigator.pop(context);
-                                      },
-                                    ),
-                                  ],
-                                ),
-                              ),
-                            );
-                          },
+                          onTap: () =>
+                              _showMessageOptions(context, message, chat),
                         );
                       },
                     ),

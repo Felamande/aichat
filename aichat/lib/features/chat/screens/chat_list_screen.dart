@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
 import 'package:hive_flutter/hive_flutter.dart';
 import '../widgets/chat_card.dart';
@@ -39,6 +40,15 @@ class ChatListNotifier extends StateNotifier<List<Chat>> {
     final box = await Hive.openBox<Chat>('chats');
     await box.put(chat.id, chat);
     state = state.map((c) => c.id == chat.id ? chat : c).toList();
+  }
+
+  Future<void> duplicateChat(Chat chat) async {
+    final newChat = Chat(
+      title: '${chat.title} (Copy)',
+      modelId: chat.modelId,
+      messages: chat.messages,
+    );
+    await addChat(newChat);
   }
 }
 
@@ -97,6 +107,94 @@ class ChatListScreen extends ConsumerWidget {
             child: const Text('Create'),
           ),
         ],
+      ),
+    );
+  }
+
+  Future<void> _showDeleteConfirmation(
+    BuildContext context,
+    WidgetRef ref,
+    Chat chat,
+  ) async {
+    final result = await showDialog<bool>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Delete Chat'),
+        content: Text(
+          'Are you sure you want to delete "${chat.title}"?\nThis action cannot be undone.',
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancel'),
+          ),
+          TextButton(
+            style: TextButton.styleFrom(
+              foregroundColor: Theme.of(context).colorScheme.error,
+            ),
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Delete'),
+          ),
+        ],
+      ),
+    );
+
+    if (result == true) {
+      await ref.read(chatListProvider.notifier).removeChat(chat.id);
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('Chat deleted'),
+            duration: Duration(seconds: 2),
+          ),
+        );
+      }
+    }
+  }
+
+  void _showChatOptions(BuildContext context, WidgetRef ref, Chat chat) {
+    final theme = Theme.of(context);
+
+    showModalBottomSheet(
+      context: context,
+      builder: (context) => SafeArea(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            ListTile(
+              leading: const Icon(Icons.copy),
+              title: const Text('Duplicate Chat'),
+              onTap: () async {
+                await ref.read(chatListProvider.notifier).duplicateChat(chat);
+                Navigator.pop(context);
+                if (context.mounted) {
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('Chat duplicated'),
+                      duration: Duration(seconds: 2),
+                    ),
+                  );
+                }
+              },
+            ),
+            ListTile(
+              leading: Icon(
+                Icons.delete,
+                color: theme.colorScheme.error,
+              ),
+              title: Text(
+                'Delete Chat',
+                style: TextStyle(
+                  color: theme.colorScheme.error,
+                ),
+              ),
+              onTap: () {
+                Navigator.pop(context);
+                _showDeleteConfirmation(context, ref, chat);
+              },
+            ),
+          ],
+        ),
       ),
     );
   }
@@ -178,9 +276,8 @@ class ChatListScreen extends ConsumerWidget {
                 return ChatCard(
                   chat: chat,
                   onTap: () => _navigateToChat(context, chat.id),
-                  onDelete: () {
-                    ref.read(chatListProvider.notifier).removeChat(chat.id);
-                  },
+                  onLongPress: () => _showChatOptions(context, ref, chat),
+                  onDelete: () => _showDeleteConfirmation(context, ref, chat),
                 );
               },
             ),

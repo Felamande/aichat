@@ -7,12 +7,14 @@ class ChatCard extends StatelessWidget {
   final Chat chat;
   final VoidCallback onTap;
   final VoidCallback onDelete;
+  final VoidCallback onLongPress;
 
   const ChatCard({
     super.key,
     required this.chat,
     required this.onTap,
     required this.onDelete,
+    required this.onLongPress,
   });
 
   String get lastMessagePreview {
@@ -43,6 +45,7 @@ class ChatCard extends StatelessWidget {
       ),
       child: InkWell(
         onTap: onTap,
+        onLongPress: onLongPress,
         child: Padding(
           padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
           child: Row(
