@@ -4,7 +4,7 @@
 
 ![AIChat Logo](aichat/assets/icons/app_icon.png)
 
-A modern, feature-rich AI chat application built with Flutter and developed using [Cursor](https://cursor.sh), the world's best IDE.
+A modern, feature-rich AI chat application built with Flutter and fully developed using [Cursor](https://cursor.sh)
 
 </div>
 
