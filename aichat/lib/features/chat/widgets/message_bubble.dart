@@ -194,7 +194,21 @@ class MessageBubble extends StatelessWidget {
                         isFavorite ? Icons.star : Icons.star_border,
                         size: 18,
                       ),
-                      onPressed: onFavorite,
+                      onPressed: onFavorite == null
+                          ? null
+                          : () {
+                              onFavorite!();
+                              ScaffoldMessenger.of(context).showSnackBar(
+                                SnackBar(
+                                  content: Text(
+                                    isFavorite
+                                        ? l10n.get('message_favorite_removed')
+                                        : l10n.get('message_favorite_added'),
+                                  ),
+                                  duration: const Duration(seconds: 2),
+                                ),
+                              );
+                            },
                     ),
                     IconButton(
                       icon: const Icon(Icons.delete, size: 18),

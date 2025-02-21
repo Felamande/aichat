@@ -1,4 +1,3 @@
-import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter_riverpod/flutter_riverpod.dart';
@@ -26,94 +25,19 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final ScrollController _scrollController = ScrollController();
   bool _isComposing = false;
   bool _shouldAutoScroll = true;
-  bool _isSending = false;
-  // List<String> _availableModels = [];
+  bool _isNearBottom = true;
+  late AppLocalizations l10n;
+  static const double _scrollThreshold =
+      100.0; // Distance from bottom to consider "near bottom"
 
   @override
   void initState() {
     super.initState();
-    _loadAvailableModels();
     _scrollController.addListener(_scrollListener);
-    // Initial scroll to bottom
-    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
-  }
-
-  Future<void> _loadAvailableModels() async {
-    final apiConfig =
-        await ref.read(apiConfigServiceProvider).getDefaultConfig();
-    if (apiConfig != null) {
-      // final models =
-      //     await ref.read(chatServiceProvider).fetchAvailableModels(apiConfig);
-      if (mounted) {
-        setState(() {
-          // _availableModels = models;
-        });
-      }
-    }
-  }
-
-  void _showApiSelector(Chat chat) async {
-    final apiConfigs = await ref.read(apiConfigServiceProvider).getAllConfigs();
-    final currentConfig = apiConfigs.firstWhere(
-      (config) => config.id == chat.apiConfigId,
-      orElse: () => apiConfigs.first,
-    );
-
-    if (!mounted) return;
-
-    final selectedConfig = await showDialog<ApiConfig>(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: Text(AppLocalizations.of(context).get('select_api_title')),
-        content: SizedBox(
-          width: double.maxFinite,
-          child: ListView.builder(
-            shrinkWrap: true,
-            itemCount: apiConfigs.length,
-            itemBuilder: (context, index) {
-              final config = apiConfigs[index];
-              return RadioListTile<ApiConfig>(
-                title: Text(config.name),
-                subtitle: Text(config.baseUrl),
-                value: config,
-                groupValue: currentConfig,
-                onChanged: (value) {
-                  Navigator.pop(context, value);
-                },
-              );
-            },
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: Text(AppLocalizations.of(context).get('cancel')),
-          ),
-        ],
-      ),
-    );
-
-    if (selectedConfig != null && selectedConfig.id != chat.apiConfigId) {
-      // Update chat with new API config and model
-      final updatedChat = chat.copyWith(
-        apiConfigId: selectedConfig.id,
-        modelId: selectedConfig.defaultModel,
-      );
-
-      // Update in controller
-      await ref
-          .read(chatControllerProvider(widget.chatId).notifier)
-          .updateChat(updatedChat);
-
-      // Set as default config
-      await ref
-          .read(apiConfigServiceProvider)
-          .setDefaultConfig(selectedConfig.id);
-
-      if (mounted) {
-        setState(() {}); // Trigger rebuild
-      }
-    }
+    // Remove the initial scroll to bottom since we'll handle it in didChangeDependencies
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToBottom();
+    });
   }
 
   @override
@@ -128,21 +52,24 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     if (_scrollController.hasClients) {
       final maxScroll = _scrollController.position.maxScrollExtent;
       final currentScroll = _scrollController.offset;
-      // Only auto-scroll if we're very close to the bottom
-      _shouldAutoScroll = (maxScroll - currentScroll) <= 20;
+      // Check if we're near the bottom
+      _isNearBottom = (maxScroll - currentScroll) <= _scrollThreshold;
+
+      // Only allow auto-scroll if we're very close to the bottom
+      setState(() {
+        _shouldAutoScroll = _isNearBottom;
+      });
     }
   }
 
   void _scrollToBottom() {
-    if (_scrollController.hasClients && _shouldAutoScroll) {
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        _scrollController.animateTo(
-          _scrollController.position.maxScrollExtent,
-          duration: const Duration(milliseconds: 300),
-          curve: Curves.easeOut,
-        );
-      });
-    }
+    if (!_scrollController.hasClients) return;
+
+    _scrollController.animateTo(
+      _scrollController.position.maxScrollExtent,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
   }
 
   void _handleSubmitted(String text) {
@@ -151,7 +78,8 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     _messageController.clear();
     setState(() {
       _isComposing = false;
-      _shouldAutoScroll = true; // Force scroll to bottom for new messages
+      _shouldAutoScroll = true; // Reset auto-scroll when sending new message
+      _isNearBottom = true;
     });
 
     ref.read(chatControllerProvider(widget.chatId).notifier).sendMessage(text);
@@ -202,7 +130,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               onTap: () {
                 ref
                     .read(favoritesControllerProvider.notifier)
-                    .toggleFavorite(chat, message);
+                    .toggleMessageFavorite(message, chat);
                 Navigator.pop(context);
               },
             ),
@@ -267,7 +195,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           onFavorite: () {
             ref
                 .read(favoritesControllerProvider.notifier)
-                .toggleFavorite(chat, message);
+                .toggleMessageFavorite(message, chat);
           },
           onDelete: () {
             ref
@@ -282,10 +210,23 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
   @override
   Widget build(BuildContext context) {
+    l10n = AppLocalizations.of(context);
     final chatState = ref.watch(chatControllerProvider(widget.chatId));
+
+    // Move the chat state watching logic here
+    ref.listen<AsyncValue<Chat>>(chatControllerProvider(widget.chatId),
+        (previous, next) {
+      next.whenData((chat) {
+        if (_shouldAutoScroll && _isNearBottom) {
+          WidgetsBinding.instance.addPostFrameCallback((_) {
+            _scrollToBottom();
+          });
+        }
+      });
+    });
+
     final favorites = ref.watch(favoritesControllerProvider);
     final theme = Theme.of(context);
-    final l10n = AppLocalizations.of(context);
 
     return Scaffold(
       appBar: AppBar(
@@ -338,7 +279,7 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
               onPressed: () {
                 ref
                     .read(favoritesControllerProvider.notifier)
-                    .toggleFavorite(chat);
+                    .toggleChatFavorite(chat);
               },
             ),
             loading: () => const SizedBox(),
@@ -500,6 +441,171 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
         loading: () => const Center(child: CircularProgressIndicator()),
         error: (error, _) =>
             Center(child: Text('${l10n.get('error_prefix')}$error')),
+      ),
+    );
+  }
+
+  void _showApiSelector(Chat chat) async {
+    final apiConfigs = await ref.read(apiConfigServiceProvider).getAllConfigs();
+    final currentConfig = apiConfigs.firstWhere(
+      (config) => config.id == chat.apiConfigId,
+      orElse: () => apiConfigs.first,
+    );
+
+    if (!mounted) return;
+
+    final selectedConfig = await showDialog<ApiConfig>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(AppLocalizations.of(context).get('select_api_title')),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: apiConfigs.length,
+            itemBuilder: (context, index) {
+              final config = apiConfigs[index];
+              return RadioListTile<ApiConfig>(
+                title: Text(config.name),
+                subtitle: Text(config.baseUrl),
+                value: config,
+                groupValue: currentConfig,
+                onChanged: (value) {
+                  Navigator.pop(context, value);
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(AppLocalizations.of(context).get('cancel')),
+          ),
+        ],
+      ),
+    );
+
+    if (selectedConfig != null && selectedConfig.id != chat.apiConfigId) {
+      // Update chat with new API config and model
+      final updatedChat = chat.copyWith(
+        apiConfigId: selectedConfig.id,
+        modelId: selectedConfig.defaultModel,
+      );
+
+      // Update in controller
+      await ref
+          .read(chatControllerProvider(widget.chatId).notifier)
+          .updateChat(updatedChat);
+
+      // Set as default config
+      await ref
+          .read(apiConfigServiceProvider)
+          .setDefaultConfig(selectedConfig.id);
+
+      if (mounted) {
+        setState(() {}); // Trigger rebuild
+      }
+    }
+  }
+
+  void _showConfigDialog({ApiConfig? config, bool isCopy = false}) {
+    final nameController = TextEditingController(
+        text: isCopy ? "${config?.name} (Copy)" : config?.name);
+    final urlController = TextEditingController(text: config?.baseUrl);
+    final apiKeyController = TextEditingController(text: config?.apiKey);
+    final modelController =
+        TextEditingController(text: config?.defaultModel ?? 'gpt-3.5-turbo');
+
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Text(l10n.get(isCopy
+            ? 'copy_api_config'
+            : config == null
+                ? 'add_api_config'
+                : 'edit_api_config')),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: nameController,
+              decoration: InputDecoration(
+                labelText: l10n.get('api_name'),
+                hintText: l10n.get('api_name_hint'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: urlController,
+              decoration: InputDecoration(
+                labelText: l10n.get('base_url'),
+                hintText: l10n.get('base_url_hint'),
+              ),
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: apiKeyController,
+              decoration: InputDecoration(
+                labelText: l10n.get('api_key'),
+                hintText: l10n.get('api_key_hint'),
+              ),
+              obscureText: true,
+            ),
+            const SizedBox(height: 8),
+            TextField(
+              controller: modelController,
+              decoration: InputDecoration(
+                labelText: l10n.get('default_model'),
+                hintText: l10n.get('default_model_hint'),
+              ),
+            ),
+          ],
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: Text(l10n.get('cancel')),
+          ),
+          TextButton(
+            onPressed: () async {
+              if (nameController.text.isNotEmpty &&
+                  urlController.text.isNotEmpty &&
+                  apiKeyController.text.isNotEmpty &&
+                  modelController.text.isNotEmpty) {
+                final newConfig = ApiConfig(
+                  id: isCopy ? null : config?.id, // Preserve ID when editing
+                  name: nameController.text,
+                  baseUrl: urlController.text,
+                  apiKey: apiKeyController.text,
+                  defaultModel: modelController.text,
+                  additionalHeaders:
+                      config?.additionalHeaders, // Preserve additional headers
+                  availableModels:
+                      config?.availableModels, // Preserve available models
+                );
+
+                if (isCopy || config == null) {
+                  await ref.read(apiConfigServiceProvider).addConfig(newConfig);
+                } else {
+                  await ref
+                      .read(apiConfigServiceProvider)
+                      .updateConfig(newConfig);
+                }
+
+                if (mounted) {
+                  Navigator.pop(context);
+                  setState(() {});
+                }
+              }
+            },
+            child: Text(isCopy
+                ? l10n.get('create')
+                : config == null
+                    ? l10n.get('add')
+                    : l10n.get('save')),
+          ),
+        ],
       ),
     );
   }

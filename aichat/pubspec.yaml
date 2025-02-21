@@ -61,7 +61,7 @@ dependencies:
   url_launcher: ^6.2.4
   share_plus: ^7.2.1
   package_info_plus: ^5.0.1
-  # file_picker: ^5.3.1  # Temporarily disabled
+  file_picker: ^6.1.1
   mime: ^1.0.4
 
 dev_dependencies:

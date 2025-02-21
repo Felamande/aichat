@@ -22,7 +22,6 @@ class FavoritesController extends StateNotifier<List<FavoriteItem>> {
           .toList();
       state = favorites;
     } catch (e) {
-      // Handle error
       state = [];
     }
   }
@@ -53,38 +52,55 @@ class FavoritesController extends StateNotifier<List<FavoriteItem>> {
     return state.any((item) => item.id == id);
   }
 
-  Future<void> toggleFavorite(Chat chat, [Message? message]) async {
+  Future<void> toggleMessageFavorite(Message message, Chat chat) async {
     final box = await Hive.openBox<Map>('favorites');
-    final id = message?.id ?? chat.id;
-    final isChat = message == null;
+    final existingIndex = state.indexWhere((item) => item.id == message.id);
 
-    final existingIndex = state.indexWhere((item) => item.id == id);
     if (existingIndex != -1) {
       // Remove from favorites
-      await box.delete(id);
-      state = state.where((item) => item.id != id).toList();
+      await box.delete(message.id);
+      state = state.where((item) => item.id != message.id).toList();
     } else {
       // Add to favorites
-      final favorite = isChat
-          ? FavoriteItem.fromChat(chat)
-          : FavoriteItem.fromMessage(message!, chat);
-      await box.put(id, favorite.toJson());
+      final favorite = FavoriteItem.fromMessage(message, chat);
+      await box.put(message.id, favorite.toJson());
       state = [...state, favorite];
     }
   }
 
+  Future<void> toggleChatFavorite(Chat chat) async {
+    final box = await Hive.openBox<Map>('favorites');
+    final existingIndex =
+        state.indexWhere((item) => item.id == chat.id && item.isChat);
+
+    if (existingIndex != -1) {
+      // Remove from favorites
+      await box.delete(chat.id);
+      state =
+          state.where((item) => !(item.id == chat.id && item.isChat)).toList();
+    } else {
+      // Add to favorites
+      final favorite = FavoriteItem.fromChat(chat);
+      await box.put(chat.id, favorite.toJson());
+      state = [...state, favorite];
+    }
+  }
+
+  // This method is now only used for cleaning up message favorites when a chat is deleted
   Future<void> removeAllForChat(String chatId) async {
     final box = await Hive.openBox<Map>('favorites');
 
-    // Find all favorites related to this chat
-    final toRemove = state.where((item) => item.chatId == chatId).toList();
+    // Only remove chat favorite, keep message favorites
+    final chatFavorites = state
+        .where(
+          (item) => item.id == chatId && item.isChat,
+        )
+        .toList();
 
-    // Remove from Hive
-    for (final item in toRemove) {
-      await box.delete(item.id);
+    if (chatFavorites.isNotEmpty) {
+      await box.delete(chatId);
+      state =
+          state.where((item) => !(item.id == chatId && item.isChat)).toList();
     }
-
-    // Update state
-    state = state.where((item) => item.chatId != chatId).toList();
   }
 }

@@ -5,6 +5,7 @@ class FavoriteItem {
   final String id;
   final String title;
   final String content;
+  final String? reasoningContent;
   final DateTime timestamp;
   final bool isChat;
   final String? chatId;
@@ -13,6 +14,7 @@ class FavoriteItem {
     required this.id,
     required this.title,
     required this.content,
+    this.reasoningContent,
     required this.timestamp,
     required this.isChat,
     this.chatId,
@@ -34,6 +36,7 @@ class FavoriteItem {
       id: message.id,
       title: chat.title,
       content: message.content,
+      reasoningContent: message.reasoningContent,
       timestamp: message.timestamp,
       isChat: false,
       chatId: chat.id,
@@ -45,6 +48,7 @@ class FavoriteItem {
       'id': id,
       'title': title,
       'content': content,
+      'reasoningContent': reasoningContent,
       'timestamp': timestamp.toIso8601String(),
       'isChat': isChat,
       'chatId': chatId,
@@ -56,6 +60,7 @@ class FavoriteItem {
       id: json['id'] as String,
       title: json['title'] as String,
       content: json['content'] as String,
+      reasoningContent: json['reasoningContent'] as String?,
       timestamp: DateTime.parse(json['timestamp'] as String),
       isChat: json['isChat'] as bool,
       chatId: json['chatId'] as String?,

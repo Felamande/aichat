@@ -166,7 +166,7 @@ class _ApiSettingsScreenState extends ConsumerState<ApiSettingsScreen> {
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
+            child: Text(l10n.get('cancel')),
           ),
           TextButton(
             onPressed: () async {
@@ -175,10 +175,13 @@ class _ApiSettingsScreenState extends ConsumerState<ApiSettingsScreen> {
                   apiKeyController.text.isNotEmpty &&
                   modelController.text.isNotEmpty) {
                 final newConfig = ApiConfig(
+                  id: isCopy ? null : config?.id, // Preserve ID when editing
                   name: nameController.text,
                   baseUrl: urlController.text,
                   apiKey: apiKeyController.text,
                   defaultModel: modelController.text,
+                  additionalHeaders: config?.additionalHeaders,
+                  availableModels: config?.availableModels,
                 );
 
                 if (isCopy || config == null) {
@@ -196,10 +199,10 @@ class _ApiSettingsScreenState extends ConsumerState<ApiSettingsScreen> {
               }
             },
             child: Text(isCopy
-                ? 'Create Copy'
+                ? l10n.get('create')
                 : config == null
-                    ? 'Add'
-                    : 'Save'),
+                    ? l10n.get('add')
+                    : l10n.get('save')),
           ),
         ],
       ),
