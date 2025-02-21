@@ -35,7 +35,7 @@ dependencies:
   
   # UI Components
   cupertino_icons: ^1.0.2
-  flutter_markdown: ^0.6.18
+  gpt_markdown: 1.0.11
   google_fonts: ^6.1.0
   flutter_slidable: ^3.0.1
   

@@ -25,6 +25,9 @@ class Chat {
   final String modelId;
 
   @HiveField(6)
+  final String apiConfigId;
+
+  @HiveField(7)
   final bool isPinned;
 
   Chat({
@@ -34,17 +37,20 @@ class Chat {
     DateTime? createdAt,
     DateTime? updatedAt,
     required this.modelId,
+    String? apiConfigId,
     this.isPinned = false,
-  }) : id = id ?? const Uuid().v4(),
-       messages = messages ?? [],
-       createdAt = createdAt ?? DateTime.now(),
-       updatedAt = updatedAt ?? DateTime.now();
+  })  : id = id ?? const Uuid().v4(),
+        messages = messages ?? [],
+        createdAt = createdAt ?? DateTime.now(),
+        updatedAt = updatedAt ?? DateTime.now(),
+        apiConfigId = apiConfigId ?? '';
 
   Chat copyWith({
     String? title,
     List<Message>? messages,
     DateTime? updatedAt,
     String? modelId,
+    String? apiConfigId,
     bool? isPinned,
   }) {
     return Chat(
@@ -54,6 +60,7 @@ class Chat {
       createdAt: createdAt,
       updatedAt: updatedAt ?? DateTime.now(),
       modelId: modelId ?? this.modelId,
+      apiConfigId: apiConfigId ?? this.apiConfigId,
       isPinned: isPinned ?? this.isPinned,
     );
   }
@@ -66,6 +73,7 @@ class Chat {
       'createdAt': createdAt.toIso8601String(),
       'updatedAt': updatedAt.toIso8601String(),
       'modelId': modelId,
+      'apiConfigId': apiConfigId,
       'isPinned': isPinned,
     };
   }
@@ -74,13 +82,13 @@ class Chat {
     return Chat(
       id: json['id'] as String,
       title: json['title'] as String,
-      messages:
-          (json['messages'] as List)
-              .map((m) => Message.fromJson(m as Map<String, dynamic>))
-              .toList(),
+      messages: (json['messages'] as List)
+          .map((m) => Message.fromJson(m as Map<String, dynamic>))
+          .toList(),
       createdAt: DateTime.parse(json['createdAt'] as String),
       updatedAt: DateTime.parse(json['updatedAt'] as String),
       modelId: json['modelId'] as String,
+      apiConfigId: json['apiConfigId'] as String,
       isPinned: json['isPinned'] as bool? ?? false,
     );
   }

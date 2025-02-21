@@ -54,14 +54,37 @@ class FavoritesController extends StateNotifier<List<FavoriteItem>> {
   }
 
   Future<void> toggleFavorite(Chat chat, [Message? message]) async {
-    final item = message != null
-        ? FavoriteItem.fromMessage(message, chat)
-        : FavoriteItem.fromChat(chat);
+    final box = await Hive.openBox<Map>('favorites');
+    final id = message?.id ?? chat.id;
+    final isChat = message == null;
 
-    if (isFavorite(item.id)) {
-      await removeFavorite(item.id);
+    final existingIndex = state.indexWhere((item) => item.id == id);
+    if (existingIndex != -1) {
+      // Remove from favorites
+      await box.delete(id);
+      state = state.where((item) => item.id != id).toList();
     } else {
-      await addFavorite(item);
+      // Add to favorites
+      final favorite = isChat
+          ? FavoriteItem.fromChat(chat)
+          : FavoriteItem.fromMessage(message!, chat);
+      await box.put(id, favorite.toJson());
+      state = [...state, favorite];
     }
+  }
+
+  Future<void> removeAllForChat(String chatId) async {
+    final box = await Hive.openBox<Map>('favorites');
+
+    // Find all favorites related to this chat
+    final toRemove = state.where((item) => item.chatId == chatId).toList();
+
+    // Remove from Hive
+    for (final item in toRemove) {
+      await box.delete(item.id);
+    }
+
+    // Update state
+    state = state.where((item) => item.chatId != chatId).toList();
   }
 }

@@ -32,7 +32,6 @@ class ChatController extends StateNotifier<AsyncValue<Chat>> {
 
   Future<void> _loadChat() async {
     try {
-      // Load chat from Hive box
       final box = await Hive.openBox<Chat>('chats');
       final chat = box.get(chatId);
       if (chat != null) {
@@ -40,6 +39,16 @@ class ChatController extends StateNotifier<AsyncValue<Chat>> {
       } else {
         state = AsyncValue.error('Chat not found', StackTrace.current);
       }
+    } catch (e, stack) {
+      state = AsyncValue.error(e, stack);
+    }
+  }
+
+  Future<void> updateChat(Chat chat) async {
+    try {
+      final box = await Hive.openBox<Chat>('chats');
+      await box.put(chat.id, chat);
+      state = AsyncValue.data(chat);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
     }
@@ -67,31 +76,67 @@ class ChatController extends StateNotifier<AsyncValue<Chat>> {
 
     // Get API config
     final apiConfigBox = await Hive.openBox<ApiConfig>('api_configs');
-    final apiConfig = apiConfigBox.values.firstWhere(
-      (config) => config.isEnabled,
-      orElse: () => throw Exception('No enabled API configuration found'),
-    );
+    final apiConfig = apiConfigBox.values.first;
 
     try {
-      final response = await _chatService.sendMessage(
-        content: content,
-        modelId: previousState.modelId,
-        previousMessages: previousState.messages,
-        apiConfig: apiConfig,
+      // Create a placeholder assistant message
+      final assistantMessage = Message(
+        content: '',
+        isUser: false,
+        apiConfigName: apiConfig.name,
       );
 
-      state = AsyncValue.data(previousState.copyWith(
-        messages: [...previousState.messages, userMessage, response],
+      // Add the empty assistant message to the chat
+      state = AsyncValue.data(state.value!.copyWith(
+        messages: [...state.value!.messages, assistantMessage],
         updatedAt: DateTime.now(),
       ));
 
-      // Save to Hive
-      await _saveChat(state.value!);
+      // Get context messages
+      final contextMessages = _getContextMessages(previousState.messages);
+
+      // Start streaming the response
+      final streamController = await _chatService.sendMessageStream(
+        content: content,
+        modelId: previousState.modelId,
+        previousMessages: contextMessages,
+        apiConfig: apiConfig,
+      );
+
+      await for (final update in streamController) {
+        if (update.isComplete) {
+          // Final update with complete message
+          final updatedMessages = [...state.value!.messages];
+          updatedMessages[updatedMessages.length - 1] = update.message.copyWith(
+            apiConfigName: apiConfig.name,
+          );
+
+          state = AsyncValue.data(state.value!.copyWith(
+            messages: updatedMessages,
+            updatedAt: DateTime.now(),
+          ));
+
+          // Save to Hive only on completion
+          await _saveChat(state.value!);
+        } else {
+          // Intermediate update
+          final updatedMessages = [...state.value!.messages];
+          updatedMessages[updatedMessages.length - 1] = update.message.copyWith(
+            apiConfigName: apiConfig.name,
+          );
+
+          state = AsyncValue.data(state.value!.copyWith(
+            messages: updatedMessages,
+            updatedAt: DateTime.now(),
+          ));
+        }
+      }
     } catch (e, stack) {
       final errorMessage = Message(
         content: 'Failed to send message: ${e.toString()}',
         isUser: false,
         isError: true,
+        apiConfigName: apiConfig.name,
       );
 
       state = AsyncValue.data(previousState.copyWith(
@@ -115,6 +160,38 @@ class ChatController extends StateNotifier<AsyncValue<Chat>> {
     final previousState = state.value;
     if (previousState == null) return;
 
+    // If the last message is a split, remove it
+    if (previousState.messages.isNotEmpty &&
+        previousState.messages.last.isSplit) {
+      state = AsyncValue.data(previousState.copyWith(
+        messages: previousState.messages
+            .sublist(0, previousState.messages.length - 1),
+        updatedAt: DateTime.now(),
+      ));
+    } else {
+      // Add a split message
+      final splitMessage = Message(
+        content: '--- Context Split ---',
+        isUser: false,
+        isSplit: true,
+      );
+
+      state = AsyncValue.data(previousState.copyWith(
+        messages: [...previousState.messages, splitMessage],
+        updatedAt: DateTime.now(),
+      ));
+    }
+
+    // Save to Hive
+    await _saveChat(state.value!);
+  }
+
+  Future<void> clearMessages() async {
+    if (state.isLoading) return;
+
+    final previousState = state.value;
+    if (previousState == null) return;
+
     state = AsyncValue.data(previousState.copyWith(
       messages: [],
       updatedAt: DateTime.now(),
@@ -122,6 +199,15 @@ class ChatController extends StateNotifier<AsyncValue<Chat>> {
 
     // Save to Hive
     await _saveChat(state.value!);
+  }
+
+  List<Message> _getContextMessages(List<Message> messages) {
+    // Find the last split message
+    final lastSplitIndex = messages.lastIndexWhere((m) => m.isSplit);
+    if (lastSplitIndex == -1) {
+      return messages;
+    }
+    return messages.sublist(lastSplitIndex + 1);
   }
 
   Future<void> deleteMessage(String messageId) async {

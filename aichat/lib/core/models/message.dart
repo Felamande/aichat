@@ -68,13 +68,25 @@ class Message {
   @HiveField(6)
   final List<Attachment> attachments;
 
+  @HiveField(7)
+  final String? reasoningContent;
+
+  @HiveField(8)
+  final String? apiConfigName;
+
+  @HiveField(9)
+  final bool isSplit;
+
   Message({
     String? id,
     required this.content,
     required this.isUser,
     DateTime? timestamp,
     this.reasoning,
+    this.reasoningContent,
     this.isError = false,
+    this.isSplit = false,
+    this.apiConfigName,
     List<Attachment>? attachments,
   })  : id = id ?? const Uuid().v4(),
         timestamp = timestamp ?? DateTime.now(),
@@ -85,7 +97,10 @@ class Message {
     bool? isUser,
     DateTime? timestamp,
     String? reasoning,
+    String? reasoningContent,
     bool? isError,
+    bool? isSplit,
+    String? apiConfigName,
     List<Attachment>? attachments,
   }) {
     return Message(
@@ -94,7 +109,10 @@ class Message {
       isUser: isUser ?? this.isUser,
       timestamp: timestamp ?? this.timestamp,
       reasoning: reasoning ?? this.reasoning,
+      reasoningContent: reasoningContent ?? this.reasoningContent,
       isError: isError ?? this.isError,
+      isSplit: isSplit ?? this.isSplit,
+      apiConfigName: apiConfigName ?? this.apiConfigName,
       attachments: attachments ?? this.attachments,
     );
   }
@@ -106,7 +124,10 @@ class Message {
       'isUser': isUser,
       'timestamp': timestamp.toIso8601String(),
       'reasoning': reasoning,
+      'reasoningContent': reasoningContent,
       'isError': isError,
+      'isSplit': isSplit,
+      'apiConfigName': apiConfigName,
       'attachments': attachments.map((a) => a.toJson()).toList(),
     };
   }
@@ -118,7 +139,10 @@ class Message {
       isUser: json['isUser'] as bool,
       timestamp: DateTime.parse(json['timestamp'] as String),
       reasoning: json['reasoning'] as String?,
+      reasoningContent: json['reasoningContent'] as String?,
       isError: json['isError'] as bool? ?? false,
+      isSplit: json['isSplit'] as bool? ?? false,
+      apiConfigName: json['apiConfigName'] as String?,
       attachments: (json['attachments'] as List?)
               ?.map((a) => Attachment.fromJson(a as Map<String, dynamic>))
               .toList() ??

@@ -8,6 +8,7 @@ import 'chat_screen.dart';
 import '../../search/screens/search_screen.dart';
 import '../../settings/screens/settings_screen.dart';
 import '../../../core/services/api_config_service.dart';
+import '../../favorites/controllers/favorites_controller.dart';
 
 final chatListProvider =
     StateNotifierProvider<ChatListNotifier, List<Chat>>((ref) {
@@ -52,61 +53,94 @@ class ChatListNotifier extends StateNotifier<List<Chat>> {
   }
 }
 
+class _NewChatDialog extends StatefulWidget {
+  final WidgetRef ref;
+  final Function(String) onChatCreated;
+
+  const _NewChatDialog({
+    required this.ref,
+    required this.onChatCreated,
+  });
+
+  @override
+  State<_NewChatDialog> createState() => _NewChatDialogState();
+}
+
+class _NewChatDialogState extends State<_NewChatDialog> {
+  late final TextEditingController _titleController;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleController = TextEditingController();
+  }
+
+  @override
+  void dispose() {
+    _titleController.dispose();
+    super.dispose();
+  }
+
+  Future<void> _createChat() async {
+    final title = _titleController.text.trim();
+    if (title.isEmpty) return;
+
+    final apiConfig =
+        await widget.ref.read(apiConfigServiceProvider).getDefaultConfig();
+    final chat = Chat(
+      title: title,
+      modelId: apiConfig?.defaultModel ?? 'gpt-3.5-turbo',
+    );
+    await widget.ref.read(chatListProvider.notifier).addChat(chat);
+
+    if (mounted) {
+      Navigator.pop(context);
+      widget.onChatCreated(chat.id);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      title: const Text('New Chat'),
+      content: Column(
+        mainAxisSize: MainAxisSize.min,
+        children: [
+          TextField(
+            controller: _titleController,
+            autofocus: true,
+            decoration: const InputDecoration(
+              labelText: 'Chat Title',
+              hintText: 'Enter a title for your chat',
+            ),
+            onSubmitted: (_) => _createChat(),
+          ),
+        ],
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text('Cancel'),
+        ),
+        TextButton(
+          onPressed: _createChat,
+          child: const Text('Create'),
+        ),
+      ],
+    );
+  }
+}
+
 class ChatListScreen extends ConsumerWidget {
   const ChatListScreen({super.key});
 
   void _showNewChatDialog(BuildContext context, WidgetRef ref) {
-    showDialog(
+    showDialog<void>(
       context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('New Chat'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              autofocus: true,
-              decoration: const InputDecoration(
-                labelText: 'Chat Title',
-                hintText: 'Enter a title for your chat',
-              ),
-              onSubmitted: (title) async {
-                if (title.isNotEmpty) {
-                  final apiConfig = await ref
-                      .read(apiConfigServiceProvider)
-                      .getDefaultConfig();
-                  final chat = Chat(
-                    title: title,
-                    modelId: apiConfig?.defaultModel ?? 'gpt-3.5-turbo',
-                  );
-                  await ref.read(chatListProvider.notifier).addChat(chat);
-                  Navigator.pop(context);
-                  _navigateToChat(context, chat.id);
-                }
-              },
-            ),
-          ],
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('Cancel'),
-          ),
-          TextButton(
-            onPressed: () async {
-              final title = 'New Chat ${DateTime.now().toString()}';
-              final apiConfig =
-                  await ref.read(apiConfigServiceProvider).getDefaultConfig();
-              final chat = Chat(
-                title: title,
-                modelId: apiConfig?.defaultModel ?? 'gpt-3.5-turbo',
-              );
-              await ref.read(chatListProvider.notifier).addChat(chat);
-              Navigator.pop(context);
-              _navigateToChat(context, chat.id);
-            },
-            child: const Text('Create'),
-          ),
-        ],
+      barrierDismissible: false,
+      builder: (BuildContext context) => _NewChatDialog(
+        ref: ref,
+        onChatCreated: (chatId) => _navigateToChat(context, chatId),
       ),
     );
   }
@@ -141,6 +175,9 @@ class ChatListScreen extends ConsumerWidget {
 
     if (result == true) {
       await ref.read(chatListProvider.notifier).removeChat(chat.id);
+      await ref
+          .read(favoritesControllerProvider.notifier)
+          .removeAllForChat(chat.id);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(

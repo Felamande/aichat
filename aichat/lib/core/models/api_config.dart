@@ -21,9 +21,6 @@ class ApiConfig {
   @HiveField(4)
   final String defaultModel;
 
-  @HiveField(5)
-  final bool isEnabled;
-
   @HiveField(6)
   final Map<String, dynamic> additionalHeaders;
 
@@ -36,7 +33,6 @@ class ApiConfig {
     required this.baseUrl,
     required this.apiKey,
     required this.defaultModel,
-    this.isEnabled = true,
     Map<String, dynamic>? additionalHeaders,
     List<String>? availableModels,
   })  : id = id ?? const Uuid().v4(),
@@ -48,7 +44,6 @@ class ApiConfig {
     String? baseUrl,
     String? apiKey,
     String? defaultModel,
-    bool? isEnabled,
     Map<String, dynamic>? additionalHeaders,
     List<String>? availableModels,
   }) {
@@ -58,36 +53,36 @@ class ApiConfig {
       baseUrl: baseUrl ?? this.baseUrl,
       apiKey: apiKey ?? this.apiKey,
       defaultModel: defaultModel ?? this.defaultModel,
-      isEnabled: isEnabled ?? this.isEnabled,
       additionalHeaders: additionalHeaders ?? this.additionalHeaders,
       availableModels: availableModels ?? this.availableModels,
     );
   }
 
-  Future<List<String>> fetchAvailableModels() async {
-    try {
-      final dio = Dio();
-      final response = await dio.get(
-        '$baseUrl/v1/models',
-        options: Options(
-          headers: {
-            'Authorization': 'Bearer $apiKey',
-            ...additionalHeaders,
-          },
-        ),
-      );
+  // Future<List<String>> fetchAvailableModels() async {
+  //   try {
+  //     final dio = Dio();
+  //     final response = await dio.get(
+  //       '$baseUrl/models',
+  //       options: Options(
+  //         headers: {
+  //           'Authorization': 'Bearer $apiKey',
+  //           ...additionalHeaders,
+  //         },
+  //       ),
+  //     );
 
-      if (response.statusCode == 200) {
-        final models = (response.data['data'] as List)
-            .map((model) => model['id'] as String)
-            .toList();
-        return models;
-      }
-      return [];
-    } catch (e) {
-      return [];
-    }
-  }
+  //     if (response.statusCode == 200) {
+  //       final models = (response.data['data'] as List)
+  //           .map((model) => model['id'] as String)
+  //           .toList();
+  //       print("get models: $models");
+  //       return models;
+  //     }
+  //     return [];
+  //   } catch (e) {
+  //     return [];
+  //   }
+  // }
 
   Map<String, dynamic> toJson() {
     return {
@@ -96,7 +91,6 @@ class ApiConfig {
       'baseUrl': baseUrl,
       'apiKey': apiKey,
       'defaultModel': defaultModel,
-      'isEnabled': isEnabled,
       'additionalHeaders': additionalHeaders,
       'availableModels': availableModels,
     };
@@ -109,10 +103,17 @@ class ApiConfig {
       baseUrl: json['baseUrl'] as String,
       apiKey: json['apiKey'] as String,
       defaultModel: json['defaultModel'] as String,
-      isEnabled: json['isEnabled'] as bool? ?? true,
       additionalHeaders:
           json['additionalHeaders'] as Map<String, dynamic>? ?? {},
       availableModels: (json['availableModels'] as List?)?.cast<String>() ?? [],
     );
   }
+
+  static ApiConfig empty() => ApiConfig(
+        id: '',
+        name: 'No API',
+        baseUrl: '',
+        apiKey: '',
+        defaultModel: '',
+      );
 }

@@ -15,12 +15,9 @@ class ApiConfigService {
   }
 
   Future<ApiConfig?> getDefaultConfig() async {
-    final box = await _getBox();
-    try {
-      return box.values.firstWhere((config) => config.isEnabled);
-    } catch (e) {
-      return null;
-    }
+    final box = await Hive.openBox<ApiConfig>('api_configs');
+    if (box.isEmpty) return null;
+    return box.values.first;
   }
 
   Future<void> addConfig(ApiConfig config) async {
@@ -39,27 +36,24 @@ class ApiConfigService {
   }
 
   Future<void> setDefaultConfig(String id) async {
-    final box = await _getBox();
-    final configs = box.values.toList();
-
-    for (final config in configs) {
-      if (config.id == id) {
-        await box.put(id, config.copyWith(isEnabled: true));
-      } else if (config.isEnabled) {
-        await box.put(config.id, config.copyWith(isEnabled: false));
-      }
+    final box = await Hive.openBox<ApiConfig>('api_configs');
+    final config = box.get(id);
+    if (config != null) {
+      // Move the selected config to the first position
+      await box.delete(id);
+      await box.put(id, config);
     }
   }
 
-  Future<List<String>> getAvailableModels(ApiConfig config) async {
-    try {
-      final models = await config.fetchAvailableModels();
-      if (models.isNotEmpty) {
-        await updateConfig(config.copyWith(availableModels: models));
-      }
-      return models;
-    } catch (e) {
-      return [];
-    }
-  }
+  // Future<List<String>> getAvailableModels(ApiConfig config) async {
+  //   try {
+  //     final models = await config.fetchAvailableModels();
+  //     if (models.isNotEmpty) {
+  //       await updateConfig(config.copyWith(availableModels: models));
+  //     }
+  //     return models;
+  //   } catch (e) {
+  //     return [];
+  //   }
+  // }
 }

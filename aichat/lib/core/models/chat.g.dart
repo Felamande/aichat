@@ -23,14 +23,15 @@ class ChatAdapter extends TypeAdapter<Chat> {
       createdAt: fields[3] as DateTime?,
       updatedAt: fields[4] as DateTime?,
       modelId: fields[5] as String,
-      isPinned: fields[6] as bool,
+      apiConfigId: fields[6] as String?,
+      isPinned: fields[7] as bool,
     );
   }
 
   @override
   void write(BinaryWriter writer, Chat obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(8)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -44,6 +45,8 @@ class ChatAdapter extends TypeAdapter<Chat> {
       ..writeByte(5)
       ..write(obj.modelId)
       ..writeByte(6)
+      ..write(obj.apiConfigId)
+      ..writeByte(7)
       ..write(obj.isPinned);
   }
 

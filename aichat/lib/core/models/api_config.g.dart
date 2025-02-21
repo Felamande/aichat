@@ -22,7 +22,6 @@ class ApiConfigAdapter extends TypeAdapter<ApiConfig> {
       baseUrl: fields[2] as String,
       apiKey: fields[3] as String,
       defaultModel: fields[4] as String,
-      isEnabled: fields[5] as bool,
       additionalHeaders: (fields[6] as Map?)?.cast<String, dynamic>(),
       availableModels: (fields[7] as List?)?.cast<String>(),
     );
@@ -31,7 +30,7 @@ class ApiConfigAdapter extends TypeAdapter<ApiConfig> {
   @override
   void write(BinaryWriter writer, ApiConfig obj) {
     writer
-      ..writeByte(8)
+      ..writeByte(7)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -42,8 +41,6 @@ class ApiConfigAdapter extends TypeAdapter<ApiConfig> {
       ..write(obj.apiKey)
       ..writeByte(4)
       ..write(obj.defaultModel)
-      ..writeByte(5)
-      ..write(obj.isEnabled)
       ..writeByte(6)
       ..write(obj.additionalHeaders)
       ..writeByte(7)

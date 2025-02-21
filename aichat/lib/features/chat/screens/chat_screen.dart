@@ -7,6 +7,9 @@ import '../widgets/message_bubble.dart';
 import '../../favorites/controllers/favorites_controller.dart';
 import '../../../core/models/message.dart';
 import '../../../core/models/chat.dart';
+import '../../../core/models/api_config.dart';
+import '../../../core/services/api_config_service.dart';
+import '../../../core/services/chat_service.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final String chatId;
@@ -21,12 +24,119 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
   final TextEditingController _messageController = TextEditingController();
   final ScrollController _scrollController = ScrollController();
   bool _isComposing = false;
+  bool _shouldAutoScroll = true;
+  // List<String> _availableModels = [];
+
+  @override
+  void initState() {
+    super.initState();
+    _loadAvailableModels();
+    _scrollController.addListener(_scrollListener);
+    // Initial scroll to bottom
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+  }
+
+  Future<void> _loadAvailableModels() async {
+    final apiConfig =
+        await ref.read(apiConfigServiceProvider).getDefaultConfig();
+    if (apiConfig != null) {
+      // final models =
+      //     await ref.read(chatServiceProvider).fetchAvailableModels(apiConfig);
+      if (mounted) {
+        setState(() {
+          // _availableModels = models;
+        });
+      }
+    }
+  }
+
+  void _showApiSelector(Chat chat) async {
+    final apiConfigs = await ref.read(apiConfigServiceProvider).getAllConfigs();
+    final currentConfig = apiConfigs.firstWhere(
+      (config) => config.id == chat.apiConfigId,
+      orElse: () => apiConfigs.first,
+    );
+
+    if (!mounted) return;
+
+    final selectedConfig = await showDialog<ApiConfig>(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('Select API'),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: ListView.builder(
+            shrinkWrap: true,
+            itemCount: apiConfigs.length,
+            itemBuilder: (context, index) {
+              final config = apiConfigs[index];
+              return RadioListTile<ApiConfig>(
+                title: Text(config.name),
+                subtitle: Text(config.baseUrl),
+                value: config,
+                groupValue: currentConfig,
+                onChanged: (value) {
+                  Navigator.pop(context, value);
+                },
+              );
+            },
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancel'),
+          ),
+        ],
+      ),
+    );
+
+    if (selectedConfig != null && selectedConfig != currentConfig) {
+      // Update chat with new API config and model
+      final newModelId = selectedConfig.defaultModel;
+
+      // Update the chat with new API config
+      final updatedChat = chat.copyWith(
+        apiConfigId: selectedConfig.id,
+        modelId: newModelId,
+      );
+
+      // Update in controller
+      await ref
+          .read(chatControllerProvider(widget.chatId).notifier)
+          .updateChat(updatedChat);
+
+      if (mounted) {
+        setState(() {}); // Trigger rebuild
+      }
+    }
+  }
 
   @override
   void dispose() {
     _messageController.dispose();
+    _scrollController.removeListener(_scrollListener);
     _scrollController.dispose();
     super.dispose();
+  }
+
+  void _scrollListener() {
+    if (_scrollController.hasClients) {
+      final maxScroll = _scrollController.position.maxScrollExtent;
+      final currentScroll = _scrollController.offset;
+      // Consider "at bottom" if within 50 pixels of the bottom
+      _shouldAutoScroll = (maxScroll - currentScroll) <= 50;
+    }
+  }
+
+  void _scrollToBottom() {
+    if (_scrollController.hasClients && _shouldAutoScroll) {
+      _scrollController.animateTo(
+        _scrollController.position.maxScrollExtent,
+        duration: const Duration(milliseconds: 300),
+        curve: Curves.easeOut,
+      );
+    }
   }
 
   void _handleSubmitted(String text) {
@@ -39,16 +149,6 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
 
     ref.read(chatControllerProvider(widget.chatId).notifier).sendMessage(text);
     _scrollToBottom();
-  }
-
-  void _scrollToBottom() {
-    if (_scrollController.hasClients) {
-      _scrollController.animateTo(
-        _scrollController.position.maxScrollExtent,
-        duration: const Duration(milliseconds: 300),
-        curve: Curves.easeOut,
-      );
-    }
   }
 
   Future<void> _copyMessageToClipboard(String content) async {
@@ -131,6 +231,45 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
     );
   }
 
+  Widget _buildMessageList(Chat chat) {
+    WidgetsBinding.instance.addPostFrameCallback((_) => _scrollToBottom());
+
+    return ListView.builder(
+      controller: _scrollController,
+      padding: const EdgeInsets.all(8.0),
+      itemCount: chat.messages.length,
+      itemBuilder: (context, index) {
+        final message = chat.messages[index];
+        final isFavorite = ref.watch(favoritesControllerProvider).any(
+              (item) => item.id == message.id && !item.isChat,
+            );
+
+        return MessageBubble(
+          message: message,
+          isFavorite: isFavorite,
+          onCopy: (content) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('Message copied to clipboard'),
+                duration: Duration(seconds: 2),
+              ),
+            );
+          },
+          onFavorite: () {
+            ref
+                .read(favoritesControllerProvider.notifier)
+                .toggleFavorite(chat, message);
+          },
+          onDelete: () {
+            ref
+                .read(chatControllerProvider(widget.chatId).notifier)
+                .deleteMessage(message.id);
+          },
+        );
+      },
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final chatState = ref.watch(chatControllerProvider(widget.chatId));
@@ -144,11 +283,33 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
             crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               Text(chat.title),
-              Text(
-                chat.modelId,
-                style: theme.textTheme.bodySmall?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.6),
-                ),
+              FutureBuilder<List<ApiConfig>>(
+                future: ref.read(apiConfigServiceProvider).getAllConfigs(),
+                builder: (context, snapshot) {
+                  final apiConfig = snapshot.data?.firstWhere(
+                    (config) => config.id == chat.apiConfigId,
+                    orElse: () => snapshot.data?.first ?? ApiConfig.empty(),
+                  );
+                  return GestureDetector(
+                    onTap: () => _showApiSelector(chat),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        Text(
+                          apiConfig?.name ?? 'No API Selected',
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                        ),
+                        Icon(
+                          Icons.arrow_drop_down,
+                          color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          size: 16,
+                        ),
+                      ],
+                    ),
+                  );
+                },
               ),
             ],
           ),
@@ -174,6 +335,14 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
           ),
           PopupMenuButton(
             itemBuilder: (context) => [
+              PopupMenuItem(
+                child: const Text('Select API'),
+                onTap: () {
+                  chatState.whenData((chat) {
+                    Future.microtask(() => _showApiSelector(chat));
+                  });
+                },
+              ),
               PopupMenuItem(
                 child: const Text('Clear Context'),
                 onTap: () {
@@ -216,59 +385,92 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                         ],
                       ),
                     )
-                  : ListView.builder(
-                      controller: _scrollController,
-                      padding: const EdgeInsets.all(8.0),
-                      itemCount: chat.messages.length,
-                      itemBuilder: (context, index) {
-                        final message = chat.messages[index];
-                        return MessageBubble(
-                          message: message,
-                          onTap: () =>
-                              _showMessageOptions(context, message, chat),
-                        );
-                      },
-                    ),
+                  : _buildMessageList(chat),
             ),
             const Divider(height: 1),
             Container(
               padding: const EdgeInsets.symmetric(horizontal: 8.0),
-              child: Row(
+              child: Column(
                 children: [
-                  IconButton(
-                    icon: const Icon(Icons.attach_file),
-                    onPressed: _handleAttachment,
-                  ),
-                  Expanded(
-                    child: TextField(
-                      controller: _messageController,
-                      onChanged: (text) {
-                        setState(() {
-                          _isComposing = text.isNotEmpty;
-                        });
-                      },
-                      onSubmitted: _isComposing ? _handleSubmitted : null,
-                      decoration: InputDecoration(
-                        hintText: 'Type a message',
-                        border: OutlineInputBorder(
-                          borderRadius: BorderRadius.circular(20),
-                          borderSide: BorderSide.none,
+                  chatState.when(
+                    data: (chat) => Row(
+                      children: [
+                        IconButton(
+                          icon: const Icon(Icons.api),
+                          tooltip: 'Select API',
+                          onPressed: () => _showApiSelector(chat),
                         ),
-                        filled: true,
-                        contentPadding: const EdgeInsets.symmetric(
-                          horizontal: 16,
-                          vertical: 8,
+                        IconButton(
+                          icon: const Icon(Icons.splitscreen),
+                          tooltip: 'Clear Context',
+                          onPressed: () {
+                            ref
+                                .read(chatControllerProvider(widget.chatId)
+                                    .notifier)
+                                .clearContext();
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.delete_sweep),
+                          tooltip: 'Clear Messages',
+                          onPressed: () {
+                            ref
+                                .read(chatControllerProvider(widget.chatId)
+                                    .notifier)
+                                .clearMessages();
+                          },
+                        ),
+                        IconButton(
+                          icon: const Icon(Icons.attach_file),
+                          tooltip: 'Add Attachment',
+                          onPressed: _handleAttachment,
+                        ),
+                        const Spacer(),
+                        Text(
+                          chat.modelId,
+                          style: theme.textTheme.bodySmall?.copyWith(
+                            color: theme.colorScheme.onSurface.withOpacity(0.6),
+                          ),
+                        ),
+                      ],
+                    ),
+                    loading: () => const SizedBox(),
+                    error: (_, __) => const SizedBox(),
+                  ),
+                  Row(
+                    children: [
+                      Expanded(
+                        child: TextField(
+                          controller: _messageController,
+                          onChanged: (text) {
+                            setState(() {
+                              _isComposing = text.isNotEmpty;
+                            });
+                          },
+                          onSubmitted: _isComposing ? _handleSubmitted : null,
+                          decoration: InputDecoration(
+                            hintText: 'Type a message',
+                            border: OutlineInputBorder(
+                              borderRadius: BorderRadius.circular(20),
+                              borderSide: BorderSide.none,
+                            ),
+                            filled: true,
+                            contentPadding: const EdgeInsets.symmetric(
+                              horizontal: 16,
+                              vertical: 8,
+                            ),
+                          ),
+                          maxLines: null,
+                          textInputAction: TextInputAction.send,
                         ),
                       ),
-                      maxLines: null,
-                      textInputAction: TextInputAction.send,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.send),
-                    onPressed: _isComposing
-                        ? () => _handleSubmitted(_messageController.text)
-                        : null,
+                      IconButton(
+                        icon: const Icon(Icons.send),
+                        onPressed: _isComposing
+                            ? () => _handleSubmitted(_messageController.text)
+                            : null,
+                      ),
+                    ],
                   ),
                 ],
               ),

@@ -68,7 +68,10 @@ class MessageAdapter extends TypeAdapter<Message> {
       isUser: fields[2] as bool,
       timestamp: fields[3] as DateTime?,
       reasoning: fields[4] as String?,
+      reasoningContent: fields[7] as String?,
       isError: fields[5] as bool,
+      isSplit: fields[9] as bool,
+      apiConfigName: fields[8] as String?,
       attachments: (fields[6] as List?)?.cast<Attachment>(),
     );
   }
@@ -76,7 +79,7 @@ class MessageAdapter extends TypeAdapter<Message> {
   @override
   void write(BinaryWriter writer, Message obj) {
     writer
-      ..writeByte(7)
+      ..writeByte(10)
       ..writeByte(0)
       ..write(obj.id)
       ..writeByte(1)
@@ -90,7 +93,13 @@ class MessageAdapter extends TypeAdapter<Message> {
       ..writeByte(5)
       ..write(obj.isError)
       ..writeByte(6)
-      ..write(obj.attachments);
+      ..write(obj.attachments)
+      ..writeByte(7)
+      ..write(obj.reasoningContent)
+      ..writeByte(8)
+      ..write(obj.apiConfigName)
+      ..writeByte(9)
+      ..write(obj.isSplit);
   }
 
   @override

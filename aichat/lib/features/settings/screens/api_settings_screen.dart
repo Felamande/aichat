@@ -12,8 +12,9 @@ class ApiSettingsScreen extends ConsumerStatefulWidget {
 }
 
 class _ApiSettingsScreenState extends ConsumerState<ApiSettingsScreen> {
-  void _showConfigDialog({ApiConfig? config}) {
-    final nameController = TextEditingController(text: config?.name);
+  void _showConfigDialog({ApiConfig? config, bool isCopy = false}) {
+    final nameController = TextEditingController(
+        text: isCopy ? "${config?.name} (Copy)" : config?.name);
     final urlController = TextEditingController(text: config?.baseUrl);
     final apiKeyController = TextEditingController(text: config?.apiKey);
     final modelController =
@@ -22,9 +23,11 @@ class _ApiSettingsScreenState extends ConsumerState<ApiSettingsScreen> {
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
-        title: Text(config == null
-            ? 'Add API Configuration'
-            : 'Edit API Configuration'),
+        title: Text(isCopy
+            ? 'Copy API Configuration'
+            : config == null
+                ? 'Add API Configuration'
+                : 'Edit API Configuration'),
         content: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
@@ -73,22 +76,14 @@ class _ApiSettingsScreenState extends ConsumerState<ApiSettingsScreen> {
                   urlController.text.isNotEmpty &&
                   apiKeyController.text.isNotEmpty &&
                   modelController.text.isNotEmpty) {
-                final newConfig = (config ??
-                        ApiConfig(
-                          name: nameController.text,
-                          baseUrl: urlController.text,
-                          apiKey: apiKeyController.text,
-                          defaultModel: modelController.text,
-                          isEnabled: config?.isEnabled ?? true,
-                        ))
-                    .copyWith(
+                final newConfig = ApiConfig(
                   name: nameController.text,
                   baseUrl: urlController.text,
                   apiKey: apiKeyController.text,
                   defaultModel: modelController.text,
                 );
 
-                if (config == null) {
+                if (isCopy || config == null) {
                   await ref.read(apiConfigServiceProvider).addConfig(newConfig);
                 } else {
                   await ref
@@ -102,7 +97,11 @@ class _ApiSettingsScreenState extends ConsumerState<ApiSettingsScreen> {
                 }
               }
             },
-            child: Text(config == null ? 'Add' : 'Save'),
+            child: Text(isCopy
+                ? 'Create Copy'
+                : config == null
+                    ? 'Add'
+                    : 'Save'),
           ),
         ],
       ),
@@ -110,16 +109,14 @@ class _ApiSettingsScreenState extends ConsumerState<ApiSettingsScreen> {
   }
 
   Future<void> _showDeleteDialog(ApiConfig config) async {
-    final isEnabled = config.isEnabled;
     final configs = await ref.read(apiConfigServiceProvider).getAllConfigs();
-    final hasOtherEnabledConfigs =
-        configs.any((c) => c.id != config.id && c.isEnabled);
 
-    if (isEnabled && !hasOtherEnabledConfigs) {
+    // Don't allow deleting if it's the only config
+    if (configs.length <= 1) {
       if (mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
           const SnackBar(
-            content: Text('Cannot delete the only enabled configuration'),
+            content: Text('Cannot delete the only API configuration'),
             duration: Duration(seconds: 2),
           ),
         );
@@ -227,23 +224,10 @@ class _ApiSettingsScreenState extends ConsumerState<ApiSettingsScreen> {
                       trailing: Row(
                         mainAxisSize: MainAxisSize.min,
                         children: [
-                          Switch(
-                            value: config.isEnabled,
-                            onChanged: (value) async {
-                              if (value) {
-                                await ref
-                                    .read(apiConfigServiceProvider)
-                                    .setDefaultConfig(config.id);
-                              } else if (!configs.any(
-                                  (c) => c.id != config.id && c.isEnabled)) {
-                                return;
-                              }
-                              await ref
-                                  .read(apiConfigServiceProvider)
-                                  .updateConfig(
-                                      config.copyWith(isEnabled: value));
-                              setState(() {});
-                            },
+                          IconButton(
+                            icon: const Icon(Icons.copy),
+                            onPressed: () =>
+                                _showConfigDialog(config: config, isCopy: true),
                           ),
                           IconButton(
                             icon: const Icon(Icons.edit),
