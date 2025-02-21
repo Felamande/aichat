@@ -11,6 +11,7 @@ import '../../../core/services/api_config_service.dart';
 import '../../../core/services/chat_service.dart';
 import '../../../l10n/translations.dart';
 import './expanded_editor_screen.dart';
+import './chat_list_screen.dart';
 
 class ChatScreen extends ConsumerStatefulWidget {
   final String chatId;
@@ -720,6 +721,10 @@ class _ChatScreenState extends ConsumerState<ChatScreen> {
                 );
                 await ref
                     .read(chatControllerProvider(widget.chatId).notifier)
+                    .updateChat(updatedChat);
+                // Update the chat list as well
+                await ref
+                    .read(chatListProvider.notifier)
                     .updateChat(updatedChat);
                 if (mounted) {
                   Navigator.pop(context);

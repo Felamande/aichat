@@ -24,9 +24,12 @@ class ChatCard extends StatelessWidget {
     if (chat.messages.isEmpty) {
       return l10n.get('no_messages_preview');
     }
-    return chat.messages.last.content.length > 50
-        ? '${chat.messages.last.content.substring(0, 50)}...'
-        : chat.messages.last.content;
+    final lastMessage = chat.messages.last;
+    final content = lastMessage.content.trim();
+    if (content.isEmpty) {
+      return l10n.get('no_messages_preview');
+    }
+    return content.length > 50 ? '${content.substring(0, 50)}...' : content;
   }
 
   @override
@@ -42,7 +45,7 @@ class ChatCard extends StatelessWidget {
             backgroundColor: theme.colorScheme.error,
             foregroundColor: theme.colorScheme.onError,
             icon: Icons.delete,
-            label: 'Delete',
+            label: l10n.get('delete'),
           ),
         ],
       ),

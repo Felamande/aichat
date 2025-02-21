@@ -7,6 +7,7 @@ import '../../../core/models/message.dart';
 import '../../../core/services/chat_service.dart';
 import '../../../core/models/api_config.dart';
 import '../../../core/services/attachment_service.dart';
+import '../screens/chat_list_screen.dart';
 
 enum ChatStatus {
   idle,
@@ -51,7 +52,9 @@ class ChatController extends StateNotifier<AsyncValue<Chat>> {
     try {
       final box = await Hive.openBox<Chat>('chats');
       await box.put(chat.id, chat);
+      // Update both state and chat list
       state = AsyncValue.data(chat);
+      _ref.read(chatListProvider.notifier).updateChat(chat);
     } catch (e, stack) {
       state = AsyncValue.error(e, stack);
     }
@@ -182,6 +185,8 @@ class ChatController extends StateNotifier<AsyncValue<Chat>> {
   Future<void> _saveChat(Chat chat) async {
     final box = await Hive.openBox<Chat>('chats');
     await box.put(chat.id, chat);
+    // Update the chat list to refresh the preview
+    _ref.read(chatListProvider.notifier).updateChat(chat);
   }
 
   Future<void> clearContext() async {
@@ -316,6 +321,21 @@ class ChatController extends StateNotifier<AsyncValue<Chat>> {
   }
 
   void cancelStream() {
+    if (_isSending && state.value != null) {
+      // Save the current state of the last message before cancelling
+      final messages = [...state.value!.messages];
+      if (messages.isNotEmpty) {
+        final lastMessage = messages.last;
+        if (!lastMessage.isUser && lastMessage.content.isNotEmpty) {
+          // Save the partial response
+          state = AsyncValue.data(state.value!.copyWith(
+            messages: messages,
+            updatedAt: DateTime.now(),
+          ));
+          _saveChat(state.value!);
+        }
+      }
+    }
     _messageSubscription?.cancel();
     _messageSubscription = null;
     _isSending = false;

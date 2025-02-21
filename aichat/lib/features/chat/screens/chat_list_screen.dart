@@ -152,24 +152,25 @@ class ChatListScreen extends ConsumerWidget {
     WidgetRef ref,
     Chat chat,
   ) async {
+    final l10n = AppLocalizations.of(context);
     final result = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
-        title: const Text('Delete Chat'),
+        title: Text(l10n.get('delete_chat')),
         content: Text(
           'Are you sure you want to delete "${chat.title}"?\nThis action cannot be undone.',
         ),
         actions: [
           TextButton(
             onPressed: () => Navigator.pop(context, false),
-            child: const Text('Cancel'),
+            child: Text(l10n.get('cancel')),
           ),
           TextButton(
             style: TextButton.styleFrom(
               foregroundColor: Theme.of(context).colorScheme.error,
             ),
             onPressed: () => Navigator.pop(context, true),
-            child: const Text('Delete'),
+            child: Text(l10n.get('delete')),
           ),
         ],
       ),
@@ -182,9 +183,9 @@ class ChatListScreen extends ConsumerWidget {
           .removeAllForChat(chat.id);
       if (context.mounted) {
         ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(
-            content: Text('Chat deleted'),
-            duration: Duration(seconds: 2),
+          SnackBar(
+            content: Text(l10n.get('chat_deleted')),
+            duration: const Duration(seconds: 2),
           ),
         );
       }
@@ -193,6 +194,7 @@ class ChatListScreen extends ConsumerWidget {
 
   void _showChatOptions(BuildContext context, WidgetRef ref, Chat chat) {
     final theme = Theme.of(context);
+    final l10n = AppLocalizations.of(context);
 
     showModalBottomSheet(
       context: context,
@@ -202,14 +204,14 @@ class ChatListScreen extends ConsumerWidget {
           children: [
             ListTile(
               leading: const Icon(Icons.copy),
-              title: const Text('Duplicate Chat'),
+              title: Text(l10n.get('duplicate_chat')),
               onTap: () async {
                 await ref.read(chatListProvider.notifier).duplicateChat(chat);
                 Navigator.pop(context);
                 if (context.mounted) {
                   ScaffoldMessenger.of(context).showSnackBar(
-                    const SnackBar(
-                      content: Text('Chat duplicated'),
+                    SnackBar(
+                      content: Text(l10n.get('chat_duplicated')),
                       duration: Duration(seconds: 2),
                     ),
                   );
@@ -222,7 +224,7 @@ class ChatListScreen extends ConsumerWidget {
                 color: theme.colorScheme.error,
               ),
               title: Text(
-                'Delete Chat',
+                l10n.get('delete_chat'),
                 style: TextStyle(
                   color: theme.colorScheme.error,
                 ),

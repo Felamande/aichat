@@ -21,7 +21,7 @@ class AppLocalizations {
     return _localizedValues[locale.languageCode]?[key] ?? key;
   }
 
-  String getlang(String local , String key) {
+  String getlang(String local, String key) {
     return _localizedValues[local]?[key] ?? key;
   }
 
@@ -132,6 +132,10 @@ class AppLocalizations {
       'chinese': 'Chinese',
       'expanded_editor': 'Expanded Editor',
       'expand_editor': 'Expand Editor',
+      'duplicate_chat': 'Duplicate Chat',
+      'chat_duplicated': 'Chat duplicated',
+      'delete_chat': 'Delete Chat',
+      'chat_deleted': 'Chat deleted',
     },
     'zh': {
       'app_title': 'AI聊天',
@@ -237,6 +241,10 @@ class AppLocalizations {
       'chinese': '中文',
       'expanded_editor': '扩展编辑器',
       'expand_editor': '展开编辑器',
+      'duplicate_chat': '复制聊天',
+      'chat_duplicated': '聊天已复制',
+      'delete_chat': '删除聊天',
+      'chat_deleted': '聊天已删除',
     },
   };
 }
